@@ -1,0 +1,4 @@
+fn main() -> Int {
+    const xs = [1, 2]
+    return 0
+}

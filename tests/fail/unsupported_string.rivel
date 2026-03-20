@@ -1,0 +1,4 @@
+fn main() -> Int {
+    const msg = "hi"
+    return 0
+}

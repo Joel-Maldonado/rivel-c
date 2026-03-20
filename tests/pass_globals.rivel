@@ -1,0 +1,10 @@
+const BASE: Int = 40
+const READY: Bool = BASE == 40 and not false
+
+fn main() -> Int {
+    if READY {
+        return BASE + 2
+    } else {
+        return 0
+    }
+}

@@ -1,0 +1,4 @@
+fn main() -> Int {
+    const delta = -5
+    return (20 + delta) % 8
+}

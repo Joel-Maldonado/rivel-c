@@ -1,0 +1,11 @@
+fn main() -> Int {
+    mut i = 0
+    mut total: Int = 0
+
+    while i < 7 {
+        total = total + i
+        i = i + 1
+    }
+
+    return total
+}

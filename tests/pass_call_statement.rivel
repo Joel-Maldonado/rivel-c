@@ -1,0 +1,8 @@
+fn answer() -> Int {
+    return 42
+}
+
+fn main() -> Int {
+    answer()
+    return 42
+}

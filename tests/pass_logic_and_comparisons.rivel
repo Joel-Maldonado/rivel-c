@@ -1,0 +1,12 @@
+fn main() -> Int {
+    const bigger = 10 > 3
+    const ready = bigger and not false
+
+    if ready or false {
+        return 42
+    } elif 1 < 0 {
+        return 1
+    } else {
+        return 0
+    }
+}

@@ -1,0 +1,6 @@
+fn main() -> Int {
+    const x = 10
+    mut y: Int = 32
+    y = y
+    return x + y
+}

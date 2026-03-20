@@ -1,0 +1,12 @@
+const BONUS = 2
+
+fn main() -> Int {
+    const x = 10
+
+    if true {
+        const x = 40
+        return x + BONUS
+    } else {
+        return x
+    }
+}

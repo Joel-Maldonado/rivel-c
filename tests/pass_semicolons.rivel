@@ -1,0 +1,5 @@
+fn main() -> Int {
+    const x: Int = 40;
+    const y = 2;
+    return x + y;
+}

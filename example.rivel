@@ -1,0 +1,95 @@
+# Tune the report by changing these constants.
+const TARGET_INDEX: Int = 8
+const LIMIT: Int = 50
+const REPORT_READY: Bool = (TARGET_INDEX < LIMIT) and (not false or LIMIT == 0)
+
+fn main() -> Int {
+    if not REPORT_READY {
+        return 1
+    }
+
+    const target = fib(TARGET_INDEX); const previous: Int = fib(TARGET_INDEX - 1)
+    const total = sum_through(TARGET_INDEX)
+    const crossing_index: Int = first_index_at_least(LIMIT)
+    const signed_distance = distance_from_limit(target, LIMIT)
+    const consistent = report_consistent(target, previous, total)
+
+    emit_report(target, previous, total, crossing_index)
+
+    if consistent and target > previous {
+        const margin = target - previous
+        print(margin)
+    } elif signed_distance == 0 {
+        print(0)
+    } else {
+        const signed_distance = -signed_distance
+        print(signed_distance)
+    }
+
+    return target
+}
+
+# Helper definitions live below main to show forward calls.
+fn fib(n: Int) -> Int {
+    if n == 0 {
+        return 0
+    } elif n == 1 {
+        return 1
+    } else {
+        return fib(n - 1) + fib(n - 2)
+    }
+}
+
+fn sum_through(last_index: Int) -> Int {
+    mut index = 0
+    mut total: Int = 0
+
+    while index <= last_index {
+        total = total + fib(index)
+        index = index + 1
+    }
+
+    return total
+}
+
+fn first_index_at_least(limit: Int) -> Int {
+    mut index: Int = 0
+
+    while fib(index) < limit {
+        index = index + 1
+    }
+
+    return index
+}
+
+fn is_even(value: Int) -> Bool {
+    return value % 2 == 0
+}
+
+fn distance_from_limit(value: Int, limit: Int) -> Int {
+    if value == limit {
+        return 0
+    } elif value < limit {
+        return -(limit - value)
+    } else {
+        return value - limit
+    }
+}
+
+fn report_consistent(target: Int, previous: Int, total: Int) -> Bool {
+    const doubled_previous = previous * 2
+    const average = total / (TARGET_INDEX + 1)
+
+    return (target >= previous and target != 0) and (doubled_previous > target or average > 0)
+}
+
+fn emit_report(target: Int, previous: Int, total: Int, crossing_index: Int) -> Int {
+    print(target)
+    print(previous)
+    print(total)
+    print(crossing_index)
+    print(is_even(target))
+    print(distance_from_limit(target, LIMIT))
+    print(report_consistent(target, previous, total))
+    return total
+}
