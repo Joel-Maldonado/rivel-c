@@ -1,4 +1,4 @@
-CC ?= cc
+CC ?= gcc
 CPPFLAGS ?= -MMD -MP
 CFLAGS ?= -std=c11 -Wall -Wextra -Werror -pedantic -g
 LDFLAGS ?=
