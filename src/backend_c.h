@@ -6,6 +6,6 @@
 #include "semantic.h"
 #include "strbuf.h"
 
-bool c_backend_generate(const Program *program, const SemanticContext *semantics, Arena *arena, StrBuf *output, CompileError *error);
+bool c_backend_generate(const Program *program, const SemanticResult *semantics, Arena *arena, StrBuf *output, CompileError *error);
 
 #endif

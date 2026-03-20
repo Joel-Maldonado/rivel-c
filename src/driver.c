@@ -1,8 +1,11 @@
 #include "driver.h"
 
+#include <errno.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 
 #include "arena.h"
 #include "backend_c.h"
@@ -10,6 +13,16 @@
 #include "semantic.h"
 #include "strbuf.h"
 #include "tokenizer.h"
+
+extern char **environ;
+
+typedef struct {
+    Arena arena;
+    TokenList tokens;
+    Program program;
+    SemanticResult *semantics;
+    StrBuf generated_c;
+} DriverPipeline;
 
 static bool read_entire_file(const char *path, char **out_contents, CompileError *error) {
     FILE *file = fopen(path, "rb");
@@ -67,17 +80,6 @@ static bool write_entire_file(const char *path, const char *contents, CompileErr
     return true;
 }
 
-static char *dup_cstr(const char *text, CompileError *error) {
-    size_t len = strlen(text);
-    char *copy = (char *)malloc(len + 1U);
-    if (copy == NULL) {
-        error_set_oom(error, NULL);
-        return NULL;
-    }
-    memcpy(copy, text, len + 1U);
-    return copy;
-}
-
 static char *join_suffix(const char *base, const char *suffix, CompileError *error) {
     size_t base_len = strlen(base);
     size_t suffix_len = strlen(suffix);
@@ -90,114 +92,120 @@ static char *join_suffix(const char *base, const char *suffix, CompileError *err
     return joined;
 }
 
-static char *shell_quote(const char *text, CompileError *error) {
-    StrBuf buf;
-    size_t index = 0U;
-    char *copy;
+static void driver_pipeline_init(DriverPipeline *pipeline) {
+    arena_init(&pipeline->arena, 4096U);
+    token_list_init(&pipeline->tokens, &pipeline->arena);
+    decl_list_init(&pipeline->program.decls, &pipeline->arena);
+    pipeline->semantics = NULL;
+    strbuf_init(&pipeline->generated_c);
+}
 
-    strbuf_init(&buf);
-    if (!strbuf_append_char(&buf, '\'', error)) {
-        strbuf_free(&buf);
-        return NULL;
+static void driver_pipeline_dispose(DriverPipeline *pipeline) {
+    semantic_result_dispose(pipeline->semantics);
+    strbuf_free(&pipeline->generated_c);
+    arena_free(&pipeline->arena);
+}
+
+static bool driver_run_pipeline(const char *source, DriverPipeline *pipeline, CompileError *error) {
+    pipeline->semantics = semantic_result_create(&pipeline->arena, error);
+    if (pipeline->semantics == NULL) {
+        return false;
     }
-    while (text[index] != '\0') {
-        if (text[index] == '\'') {
-            if (!strbuf_append_cstr(&buf, "'\\''", error)) {
-                strbuf_free(&buf);
-                return NULL;
-            }
-        } else if (!strbuf_append_char(&buf, text[index], error)) {
-            strbuf_free(&buf);
-            return NULL;
+    if (!tokenize_source(source, &pipeline->arena, &pipeline->tokens, error)) {
+        return false;
+    }
+    if (!parse_program(&pipeline->tokens, &pipeline->arena, &pipeline->program, error)) {
+        return false;
+    }
+    if (!semantic_analyze(&pipeline->program, pipeline->semantics, error)) {
+        return false;
+    }
+    return c_backend_generate(&pipeline->program, pipeline->semantics, &pipeline->arena, &pipeline->generated_c, error);
+}
+
+static char *driver_generated_c_path(const char *output_name, bool emit_c, CompileError *error) {
+    return join_suffix(output_name, emit_c ? ".c" : ".tmp.c", error);
+}
+
+static void driver_cleanup_generated_c(const char *generated_c_path, bool emit_c, bool wrote_generated_c) {
+    if (!emit_c && wrote_generated_c && generated_c_path != NULL) {
+        (void)remove(generated_c_path);
+    }
+}
+
+static bool driver_wait_for_process(pid_t pid, CompileError *error) {
+    int status;
+
+    while (waitpid(pid, &status, 0) < 0) {
+        if (errno != EINTR) {
+            return error_set(error, "Driver", "Failed while waiting for host C compiler: %s", strerror(errno));
         }
-        index += 1U;
-    }
-    if (!strbuf_append_char(&buf, '\'', error)) {
-        strbuf_free(&buf);
-        return NULL;
     }
 
-    copy = dup_cstr(strbuf_cstr(&buf), error);
-    strbuf_free(&buf);
-    return copy;
+    if (WIFEXITED(status)) {
+        if (WEXITSTATUS(status) == 0) {
+            return true;
+        }
+        return error_set(error, "Driver", "Host C compiler `clang` exited with status %d", WEXITSTATUS(status));
+    }
+    if (WIFSIGNALED(status)) {
+        return error_set(error, "Driver", "Host C compiler `clang` terminated by signal %d", WTERMSIG(status));
+    }
+    return error_set(error, "Driver", "Host C compiler `clang` ended unexpectedly");
+}
+
+static bool driver_run_host_compiler(const char *generated_c_path, const char *output_name, CompileError *error) {
+    char *argv[] = {
+        "clang",
+        "-std=c11",
+        (char *)generated_c_path,
+        "-o",
+        (char *)output_name,
+        NULL
+    };
+    pid_t pid;
+    int spawn_error = posix_spawnp(&pid, argv[0], NULL, NULL, argv, environ);
+
+    if (spawn_error != 0) {
+        return error_set(error, "Driver", "Failed to launch host C compiler `clang`: %s", strerror(spawn_error));
+    }
+    return driver_wait_for_process(pid, error);
 }
 
 bool driver_compile_file(const char *input_file, const char *output_name, bool emit_c, CompileError *error) {
+    DriverPipeline pipeline;
     char *source = NULL;
-    char *quoted_c = NULL;
-    char *quoted_out = NULL;
     char *build_c_filename = NULL;
-    char *command = NULL;
-    Vec tokens;
-    Program program;
-    SemanticContext semantics;
-    Arena arena;
-    StrBuf generated_c;
-    int command_result;
+    bool wrote_generated_c = false;
     bool ok = false;
 
-    arena_init(&arena, 4096U);
-    strbuf_init(&generated_c);
-    semantic_context_init(&semantics, &arena);
-    vec_init(&tokens, sizeof(Token), &arena);
-    vec_init(&program.decls, sizeof(Decl *), &arena);
+    driver_pipeline_init(&pipeline);
 
     if (!read_entire_file(input_file, &source, error)) {
         goto cleanup;
     }
-    if (!tokenize_source(source, &arena, &tokens, error)) {
-        goto cleanup;
-    }
-    if (!parse_program(&tokens, &arena, &program, error)) {
-        goto cleanup;
-    }
-    if (!semantic_analyze(&program, &semantics, error)) {
-        goto cleanup;
-    }
-    if (!c_backend_generate(&program, &semantics, &arena, &generated_c, error)) {
+    if (!driver_run_pipeline(source, &pipeline, error)) {
         goto cleanup;
     }
 
-    build_c_filename = join_suffix(output_name, emit_c ? ".c" : ".tmp.c", error);
+    build_c_filename = driver_generated_c_path(output_name, emit_c, error);
     if (build_c_filename == NULL) {
         goto cleanup;
     }
-
-    if (!write_entire_file(build_c_filename, strbuf_cstr(&generated_c), error)) {
+    if (!write_entire_file(build_c_filename, strbuf_cstr(&pipeline.generated_c), error)) {
         goto cleanup;
     }
-
-    quoted_c = shell_quote(build_c_filename, error);
-    quoted_out = shell_quote(output_name, error);
-    if (quoted_c == NULL || quoted_out == NULL) {
-        goto cleanup;
-    }
-
-    command = (char *)malloc(strlen(quoted_c) + strlen(quoted_out) + 32U);
-    if (command == NULL) {
-        error_set_oom(error, NULL);
-        goto cleanup;
-    }
-    (void)snprintf(command, strlen(quoted_c) + strlen(quoted_out) + 32U, "clang -std=c11 %s -o %s", quoted_c, quoted_out);
-    command_result = system(command);
-    if (!emit_c) {
-        (void)remove(build_c_filename);
-    }
-    if (command_result != 0) {
-        error_set(error, NULL, "Command failed: %s", command);
+    wrote_generated_c = true;
+    if (!driver_run_host_compiler(build_c_filename, output_name, error)) {
         goto cleanup;
     }
 
     ok = true;
 
 cleanup:
+    driver_cleanup_generated_c(build_c_filename, emit_c, wrote_generated_c);
     free(source);
-    free(quoted_c);
-    free(quoted_out);
     free(build_c_filename);
-    free(command);
-    semantic_context_free(&semantics);
-    strbuf_free(&generated_c);
-    arena_free(&arena);
+    driver_pipeline_dispose(&pipeline);
     return ok;
 }

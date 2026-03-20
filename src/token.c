@@ -1,5 +1,25 @@
 #include "token.h"
 
+void token_list_init(TokenList *list, Arena *arena) {
+    vec_init(&list->storage, sizeof(Token), arena);
+}
+
+size_t token_list_len(const TokenList *list) {
+    return list->storage.len;
+}
+
+Token *token_list_push(TokenList *list, CompileError *error) {
+    return (Token *)vec_push(&list->storage, error);
+}
+
+Token *token_list_get(TokenList *list, size_t index) {
+    return (Token *)vec_get(&list->storage, index);
+}
+
+const Token *token_list_get_const(const TokenList *list, size_t index) {
+    return (const Token *)vec_get(&list->storage, index);
+}
+
 const char *token_name(TokenType type) {
     switch (type) {
         case TOKEN_EOF:

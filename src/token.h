@@ -1,7 +1,12 @@
 #ifndef RIVEL_TOKEN_H
 #define RIVEL_TOKEN_H
 
+#include <stddef.h>
+
+#include "arena.h"
+#include "error.h"
 #include "slice.h"
+#include "vec.h"
 
 typedef enum {
     TOKEN_EOF,
@@ -49,6 +54,16 @@ typedef struct {
     int line;
     int column;
 } Token;
+
+typedef struct {
+    Vec storage;
+} TokenList;
+
+void token_list_init(TokenList *list, Arena *arena);
+size_t token_list_len(const TokenList *list);
+Token *token_list_push(TokenList *list, CompileError *error);
+Token *token_list_get(TokenList *list, size_t index);
+const Token *token_list_get_const(const TokenList *list, size_t index);
 
 const char *token_name(TokenType type);
 

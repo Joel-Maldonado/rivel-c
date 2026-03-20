@@ -23,6 +23,28 @@ typedef struct Expr Expr;
 typedef struct Stmt Stmt;
 typedef struct Block Block;
 typedef struct Decl Decl;
+typedef struct Param Param;
+typedef struct IfBranch IfBranch;
+
+typedef struct ExprList {
+    Vec storage;
+} ExprList;
+
+typedef struct StmtList {
+    Vec storage;
+} StmtList;
+
+typedef struct IfBranchList {
+    Vec storage;
+} IfBranchList;
+
+typedef struct ParamList {
+    Vec storage;
+} ParamList;
+
+typedef struct DeclList {
+    Vec storage;
+} DeclList;
 
 typedef enum {
     EXPR_INT,
@@ -36,8 +58,6 @@ typedef enum {
 struct Expr {
     ExprKind kind;
     Token token;
-    bool has_inferred_type;
-    Type inferred_type;
     union {
         int64_t int_value;
         bool bool_value;
@@ -53,7 +73,7 @@ struct Expr {
         } binary;
         struct {
             StrSlice callee;
-            Vec args;
+            ExprList args;
         } call;
     } as;
 };
@@ -67,17 +87,44 @@ typedef enum {
     STMT_WHILE
 } StmtKind;
 
-typedef struct {
+struct Param {
     Token token;
     StrSlice name;
     Type type;
-} Param;
+};
 
-typedef struct {
+struct IfBranch {
     Token token;
     Expr *condition;
     Block *body;
-} IfBranch;
+};
+
+void expr_list_init(ExprList *list, Arena *arena);
+size_t expr_list_len(const ExprList *list);
+Expr **expr_list_push(ExprList *list, CompileError *error);
+Expr *expr_list_get(const ExprList *list, size_t index);
+
+void stmt_list_init(StmtList *list, Arena *arena);
+size_t stmt_list_len(const StmtList *list);
+Stmt **stmt_list_push(StmtList *list, CompileError *error);
+Stmt *stmt_list_get(const StmtList *list, size_t index);
+
+void if_branch_list_init(IfBranchList *list, Arena *arena);
+size_t if_branch_list_len(const IfBranchList *list);
+IfBranch *if_branch_list_push(IfBranchList *list, CompileError *error);
+const IfBranch *if_branch_list_get_const(const IfBranchList *list, size_t index);
+IfBranch *if_branch_list_get(const IfBranchList *list, size_t index);
+
+void param_list_init(ParamList *list, Arena *arena);
+size_t param_list_len(const ParamList *list);
+Param *param_list_push(ParamList *list, CompileError *error);
+Param *param_list_get(const ParamList *list, size_t index);
+const Param *param_list_get_const(const ParamList *list, size_t index);
+
+void decl_list_init(DeclList *list, Arena *arena);
+size_t decl_list_len(const DeclList *list);
+Decl **decl_list_push(DeclList *list, CompileError *error);
+Decl *decl_list_get(const DeclList *list, size_t index);
 
 struct Stmt {
     StmtKind kind;
@@ -103,7 +150,7 @@ struct Stmt {
         struct {
             Expr *condition;
             Block *then_block;
-            Vec elif_branches;
+            IfBranchList elif_branches;
             Block *else_block;
         } if_stmt;
         struct {
@@ -115,7 +162,7 @@ struct Stmt {
 
 struct Block {
     Token token;
-    Vec statements;
+    StmtList statements;
 };
 
 typedef enum {
@@ -134,7 +181,7 @@ struct Decl {
             Expr *initializer;
         } global_const;
         struct {
-            Vec params;
+            ParamList params;
             Type return_type;
             Block *body;
         } function;
@@ -142,7 +189,7 @@ struct Decl {
 };
 
 typedef struct {
-    Vec decls;
+    DeclList decls;
 } Program;
 
 #endif

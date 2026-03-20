@@ -10,6 +10,8 @@
 #include "map.h"
 #include "vec.h"
 
+typedef struct SemanticResult SemanticResult;
+
 typedef struct {
     Type type;
     int64_t int_value;
@@ -17,15 +19,14 @@ typedef struct {
 } ConstValue;
 
 typedef struct {
-    Decl *decl;
+    const Decl *decl;
     Type type;
     ConstValue value;
-    int visit_state;
-} GlobalConstInfo;
+} SemanticGlobalInfo;
 
 typedef struct {
-    Decl *decl;
-} FunctionInfo;
+    const Decl *decl;
+} SemanticFunctionInfo;
 
 typedef enum {
     BUILTIN_PRINT
@@ -33,23 +34,16 @@ typedef enum {
 
 typedef struct {
     BuiltinKind kind;
-} BuiltinInfo;
+} SemanticBuiltinInfo;
 
-typedef struct {
-    Arena *arena;
-    Vec globals;
-    Vec functions;
-    Vec builtins;
-    StringMap global_names;
-    StringMap function_names;
-    StringMap builtin_names;
-} SemanticContext;
-
-void semantic_context_init(SemanticContext *context, Arena *arena);
-void semantic_context_free(SemanticContext *context);
-bool semantic_analyze(Program *program, SemanticContext *context, CompileError *error);
-const GlobalConstInfo *semantic_lookup_global(const SemanticContext *context, StrSlice name);
-const FunctionInfo *semantic_lookup_function(const SemanticContext *context, StrSlice name);
-const BuiltinInfo *semantic_lookup_builtin(const SemanticContext *context, StrSlice name);
+SemanticResult *semantic_result_create(Arena *arena, CompileError *error);
+void semantic_result_dispose(SemanticResult *result);
+bool semantic_analyze(const Program *program, SemanticResult *result, CompileError *error);
+const SemanticGlobalInfo *semantic_lookup_global(const SemanticResult *result, StrSlice name);
+const SemanticFunctionInfo *semantic_lookup_function(const SemanticResult *result, StrSlice name);
+const SemanticBuiltinInfo *semantic_lookup_builtin(const SemanticResult *result, StrSlice name);
+bool semantic_global_const_value(const SemanticResult *result, StrSlice name, ConstValue *out_value);
+bool semantic_expr_type(const SemanticResult *result, const Expr *expr, Type *out_type);
+bool semantic_expr_const_value(const SemanticResult *result, const Expr *expr, ConstValue *out_value);
 
 #endif

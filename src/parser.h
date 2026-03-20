@@ -4,8 +4,8 @@
 #include "arena.h"
 #include "ast.h"
 #include "error.h"
-#include "vec.h"
+#include "token.h"
 
-bool parse_program(const Vec *tokens, Arena *arena, Program *out_program, CompileError *error);
+bool parse_program(const TokenList *tokens, Arena *arena, Program *out_program, CompileError *error);
 
 #endif

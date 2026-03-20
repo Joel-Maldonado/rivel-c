@@ -10,9 +10,45 @@ typedef struct {
     int line;
     int column;
     int paren_depth;
-    Vec tokens;
+    TokenList tokens;
     CompileError *error;
 } Tokenizer;
+
+typedef struct {
+    const char *name;
+    const char *message;
+} UnsupportedIdentifier;
+
+typedef struct {
+    const char *name;
+    TokenType type;
+} Keyword;
+
+static const UnsupportedIdentifier TOKENIZER_UNSUPPORTED_IDENTIFIERS[] = {
+    {"let", "Rivel v1 does not support legacy keyword `let`"},
+    {"exit", "Rivel v1 does not support legacy keyword `exit`"},
+    {"import", "Rivel v1 does not support `import`"},
+    {"from", "Rivel v1 does not support `from` imports"},
+    {"for", "Rivel v1 does not support `for ... in ...`"},
+};
+
+static const Keyword TOKENIZER_KEYWORDS[] = {
+    {"true", TOKEN_BOOL_LITERAL},
+    {"false", TOKEN_BOOL_LITERAL},
+    {"const", TOKEN_KW_CONST},
+    {"mut", TOKEN_KW_MUT},
+    {"fn", TOKEN_KW_FN},
+    {"return", TOKEN_KW_RETURN},
+    {"if", TOKEN_KW_IF},
+    {"elif", TOKEN_KW_ELIF},
+    {"else", TOKEN_KW_ELSE},
+    {"while", TOKEN_KW_WHILE},
+    {"and", TOKEN_KW_AND},
+    {"or", TOKEN_KW_OR},
+    {"not", TOKEN_KW_NOT},
+    {"Int", TOKEN_KW_TYPE_INT},
+    {"Bool", TOKEN_KW_TYPE_BOOL},
+};
 
 static bool tokenizer_is_at_end(const Tokenizer *tokenizer) {
     return tokenizer->index >= tokenizer->length;
@@ -38,19 +74,23 @@ static char tokenizer_advance(Tokenizer *tokenizer) {
 }
 
 static bool tokenizer_add_token(Tokenizer *tokenizer, TokenType type, const char *start, size_t len, int line, int column) {
-    Token token;
-    token.type = type;
-    token.lexeme = slice_from_parts(start, len);
-    token.line = line;
-    token.column = column;
-    return vec_push_copy(&tokenizer->tokens, &token, tokenizer->error);
+    Token *token = token_list_push(&tokenizer->tokens, tokenizer->error);
+
+    if (token == NULL) {
+        return false;
+    }
+    token->type = type;
+    token->lexeme = slice_from_parts(start, len);
+    token->line = line;
+    token->column = column;
+    return true;
 }
 
 static bool tokenizer_emit_separator(Tokenizer *tokenizer, int line, int column) {
     Token *last;
 
-    if (tokenizer->tokens.len > 0U) {
-        last = (Token *)vec_get(&tokenizer->tokens, tokenizer->tokens.len - 1U);
+    if (token_list_len(&tokenizer->tokens) > 0U) {
+        last = token_list_get(&tokenizer->tokens, token_list_len(&tokenizer->tokens) - 1U);
         if (last->type == TOKEN_END_STMT) {
             return true;
         }
@@ -76,67 +116,42 @@ static void tokenizer_skip_comment(Tokenizer *tokenizer) {
     }
 }
 
+static const char *tokenizer_unsupported_identifier_message(StrSlice lexeme) {
+    size_t index = 0U;
+
+    while (index < sizeof(TOKENIZER_UNSUPPORTED_IDENTIFIERS) / sizeof(TOKENIZER_UNSUPPORTED_IDENTIFIERS[0])) {
+        if (slice_equal_cstr(lexeme, TOKENIZER_UNSUPPORTED_IDENTIFIERS[index].name)) {
+            return TOKENIZER_UNSUPPORTED_IDENTIFIERS[index].message;
+        }
+        index += 1U;
+    }
+    return NULL;
+}
+
+static bool tokenizer_lookup_keyword(StrSlice lexeme, TokenType *out_type) {
+    size_t index = 0U;
+
+    while (index < sizeof(TOKENIZER_KEYWORDS) / sizeof(TOKENIZER_KEYWORDS[0])) {
+        if (slice_equal_cstr(lexeme, TOKENIZER_KEYWORDS[index].name)) {
+            *out_type = TOKENIZER_KEYWORDS[index].type;
+            return true;
+        }
+        index += 1U;
+    }
+    return false;
+}
+
 static bool tokenizer_add_identifier_like(Tokenizer *tokenizer, const char *start, size_t len, int line, int column) {
     StrSlice lexeme = slice_from_parts(start, len);
+    const char *unsupported_message;
+    TokenType keyword_type;
 
-    if (slice_equal_cstr(lexeme, "true") || slice_equal_cstr(lexeme, "false")) {
-        return tokenizer_add_token(tokenizer, TOKEN_BOOL_LITERAL, start, len, line, column);
+    unsupported_message = tokenizer_unsupported_identifier_message(lexeme);
+    if (unsupported_message != NULL) {
+        return error_set_at(tokenizer->error, "Lexer", line, column, "%s", unsupported_message);
     }
-
-    if (slice_equal_cstr(lexeme, "let")) {
-        return error_set_at(tokenizer->error, "Lexer", line, column, "Rivel v1 does not support legacy keyword `let`");
-    }
-    if (slice_equal_cstr(lexeme, "exit")) {
-        return error_set_at(tokenizer->error, "Lexer", line, column, "Rivel v1 does not support legacy keyword `exit`");
-    }
-    if (slice_equal_cstr(lexeme, "import")) {
-        return error_set_at(tokenizer->error, "Lexer", line, column, "Rivel v1 does not support `import`");
-    }
-    if (slice_equal_cstr(lexeme, "from")) {
-        return error_set_at(tokenizer->error, "Lexer", line, column, "Rivel v1 does not support `from` imports");
-    }
-    if (slice_equal_cstr(lexeme, "for")) {
-        return error_set_at(tokenizer->error, "Lexer", line, column, "Rivel v1 does not support `for ... in ...`");
-    }
-
-    if (slice_equal_cstr(lexeme, "const")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_CONST, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "mut")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_MUT, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "fn")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_FN, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "return")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_RETURN, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "if")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_IF, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "elif")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_ELIF, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "else")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_ELSE, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "while")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_WHILE, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "and")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_AND, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "or")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_OR, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "not")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_NOT, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "Int")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_TYPE_INT, start, len, line, column);
-    }
-    if (slice_equal_cstr(lexeme, "Bool")) {
-        return tokenizer_add_token(tokenizer, TOKEN_KW_TYPE_BOOL, start, len, line, column);
+    if (tokenizer_lookup_keyword(lexeme, &keyword_type)) {
+        return tokenizer_add_token(tokenizer, keyword_type, start, len, line, column);
     }
 
     return tokenizer_add_token(tokenizer, TOKEN_IDENTIFIER, start, len, line, column);
@@ -180,7 +195,29 @@ static bool tokenizer_single(Tokenizer *tokenizer, TokenType type) {
     return tokenizer_add_token(tokenizer, type, start, 1U, line, column);
 }
 
-bool tokenize_source(const char *source, Arena *arena, Vec *out_tokens, CompileError *error) {
+static bool tokenizer_emit_optional_pair(Tokenizer *tokenizer, char second, TokenType pair_type, TokenType single_type, int line, int column) {
+    const char *start = tokenizer->source + tokenizer->index;
+
+    tokenizer_advance(tokenizer);
+    if (tokenizer_peek(tokenizer, 0U) == second) {
+        tokenizer_advance(tokenizer);
+        return tokenizer_add_token(tokenizer, pair_type, start, 2U, line, column);
+    }
+    return tokenizer_add_token(tokenizer, single_type, start, 1U, line, column);
+}
+
+static bool tokenizer_emit_required_pair(Tokenizer *tokenizer, char second, TokenType pair_type, int line, int column, const char *message) {
+    const char *start = tokenizer->source + tokenizer->index;
+
+    tokenizer_advance(tokenizer);
+    if (tokenizer_peek(tokenizer, 0U) != second) {
+        return error_set_at(tokenizer->error, "Lexer", line, column, "%s", message);
+    }
+    tokenizer_advance(tokenizer);
+    return tokenizer_add_token(tokenizer, pair_type, start, 2U, line, column);
+}
+
+bool tokenize_source(const char *source, Arena *arena, TokenList *out_tokens, CompileError *error) {
     Tokenizer tokenizer;
 
     tokenizer.source = source;
@@ -190,7 +227,7 @@ bool tokenize_source(const char *source, Arena *arena, Vec *out_tokens, CompileE
     tokenizer.column = 1;
     tokenizer.paren_depth = 0;
     tokenizer.error = error;
-    vec_init(&tokenizer.tokens, sizeof(Token), arena);
+    token_list_init(&tokenizer.tokens, arena);
 
     while (!tokenizer_is_at_end(&tokenizer)) {
         char current = tokenizer_peek(&tokenizer, 0U);
@@ -271,13 +308,7 @@ bool tokenize_source(const char *source, Arena *arena, Vec *out_tokens, CompileE
                 }
                 break;
             case '-':
-                tokenizer_advance(&tokenizer);
-                if (tokenizer_peek(&tokenizer, 0U) == '>') {
-                    tokenizer_advance(&tokenizer);
-                    if (!tokenizer_add_token(&tokenizer, TOKEN_ARROW, tokenizer.source + tokenizer.index - 2U, 2U, line, column)) {
-                        return false;
-                    }
-                } else if (!tokenizer_add_token(&tokenizer, TOKEN_MINUS, tokenizer.source + tokenizer.index - 1U, 1U, line, column)) {
+                if (!tokenizer_emit_optional_pair(&tokenizer, '>', TOKEN_ARROW, TOKEN_MINUS, line, column)) {
                     return false;
                 }
                 break;
@@ -301,46 +332,22 @@ bool tokenize_source(const char *source, Arena *arena, Vec *out_tokens, CompileE
                 }
                 break;
             case '=':
-                tokenizer_advance(&tokenizer);
-                if (tokenizer_peek(&tokenizer, 0U) == '=') {
-                    tokenizer_advance(&tokenizer);
-                    if (!tokenizer_add_token(&tokenizer, TOKEN_EQ_EQ, tokenizer.source + tokenizer.index - 2U, 2U, line, column)) {
-                        return false;
-                    }
-                } else if (!tokenizer_add_token(&tokenizer, TOKEN_ASSIGN, tokenizer.source + tokenizer.index - 1U, 1U, line, column)) {
+                if (!tokenizer_emit_optional_pair(&tokenizer, '=', TOKEN_EQ_EQ, TOKEN_ASSIGN, line, column)) {
                     return false;
                 }
                 break;
             case '!':
-                tokenizer_advance(&tokenizer);
-                if (tokenizer_peek(&tokenizer, 0U) == '=') {
-                    tokenizer_advance(&tokenizer);
-                    if (!tokenizer_add_token(&tokenizer, TOKEN_BANG_EQ, tokenizer.source + tokenizer.index - 2U, 2U, line, column)) {
-                        return false;
-                    }
-                } else {
-                    return error_set_at(error, "Lexer", line, column, "Unexpected `!`; use `not` for logical negation");
+                if (!tokenizer_emit_required_pair(&tokenizer, '=', TOKEN_BANG_EQ, line, column, "Unexpected `!`; use `not` for logical negation")) {
+                    return false;
                 }
                 break;
             case '<':
-                tokenizer_advance(&tokenizer);
-                if (tokenizer_peek(&tokenizer, 0U) == '=') {
-                    tokenizer_advance(&tokenizer);
-                    if (!tokenizer_add_token(&tokenizer, TOKEN_LESS_EQ, tokenizer.source + tokenizer.index - 2U, 2U, line, column)) {
-                        return false;
-                    }
-                } else if (!tokenizer_add_token(&tokenizer, TOKEN_LESS, tokenizer.source + tokenizer.index - 1U, 1U, line, column)) {
+                if (!tokenizer_emit_optional_pair(&tokenizer, '=', TOKEN_LESS_EQ, TOKEN_LESS, line, column)) {
                     return false;
                 }
                 break;
             case '>':
-                tokenizer_advance(&tokenizer);
-                if (tokenizer_peek(&tokenizer, 0U) == '=') {
-                    tokenizer_advance(&tokenizer);
-                    if (!tokenizer_add_token(&tokenizer, TOKEN_GREATER_EQ, tokenizer.source + tokenizer.index - 2U, 2U, line, column)) {
-                        return false;
-                    }
-                } else if (!tokenizer_add_token(&tokenizer, TOKEN_GREATER, tokenizer.source + tokenizer.index - 1U, 1U, line, column)) {
+                if (!tokenizer_emit_optional_pair(&tokenizer, '=', TOKEN_GREATER_EQ, TOKEN_GREATER, line, column)) {
                     return false;
                 }
                 break;
