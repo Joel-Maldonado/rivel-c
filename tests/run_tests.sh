@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-RIVEL="$PROJECT_DIR/build/rivel"
+RIVEL="$PROJECT_DIR/rivel"
 
 pass=0
 fail=0
@@ -11,8 +11,8 @@ errors=""
 artifact_error=""
 
 echo "Building..."
-cmake -S "$PROJECT_DIR" -B "$PROJECT_DIR/build" -DCMAKE_BUILD_TYPE=Debug > /dev/null 2>&1
-cmake --build "$PROJECT_DIR/build" > /dev/null 2>&1
+make -C "$PROJECT_DIR" clean > /dev/null 2>&1
+make -C "$PROJECT_DIR" > /dev/null 2>&1
 
 record_pass() {
     local name="$1"

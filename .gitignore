@@ -1,5 +1,9 @@
 build
 cmake-build*
 .vscode/
+.build/
+*.o
+*.d
+rivel
 out.*
 out

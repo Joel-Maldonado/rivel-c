@@ -1,4 +1,3 @@
-# Tune the report by changing these constants.
 const TARGET_INDEX: Int = 8
 const LIMIT: Int = 50
 const REPORT_READY: Bool = (TARGET_INDEX < LIMIT) and (not false or LIMIT == 0)

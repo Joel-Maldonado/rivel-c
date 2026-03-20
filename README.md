@@ -1,8 +1,8 @@
-# Rivel Lang (C++ Compiler)
+# Rivel Lang (C11 Compiler)
 
 Rivel is a small compiled language with a strict, statically typed v1 core.
 
-This compiler is written in C++ and currently targets C as an intermediate
+This compiler is written in C11 and currently targets C as an intermediate
 language:
 
 `Rivel -> C -> clang -> native executable`
@@ -52,14 +52,13 @@ fn main() -> Int {
 
 ## Building
 
-Requires CMake, a C++20 compiler, and `clang` in your `PATH`.
+Requires a C11 compiler, `make`, and `clang` in your `PATH`.
 
 ```bash
-cmake -S . -B build
-cmake --build build
+make
 ```
 
-The executable is written to `build/rivel`.
+The executable is written to `./rivel`.
 
 ## Running
 
@@ -67,21 +66,21 @@ The compiler still takes a single `.rivel` input file and can optionally rename 
 generated executable with `-o`.
 
 ```bash
-./build/rivel program.rivel
-./build/out
+./rivel program.rivel
+./out
 ```
 
 Custom output name:
 
 ```bash
-./build/rivel program.rivel -o hello
+./rivel program.rivel -o hello
 ./hello
 ```
 
 If you also want to keep the generated C, pass `--emit-c`:
 
 ```bash
-./build/rivel program.rivel --emit-c
+./rivel program.rivel --emit-c
 ```
 
 By default the compiler writes only:
@@ -96,4 +95,10 @@ With `--emit-c`, it also writes:
 
 ```bash
 bash tests/run_tests.sh
+```
+
+Address/UB sanitizer build:
+
+```bash
+make sanitize
 ```
