@@ -25,8 +25,9 @@ fn main() -> Int {
         print(signed_distance)
     }
 
+    mut x = "Hello"
     for i in 1..=5 {
-        print(i * 2)
+        print(x)
     }
 
 

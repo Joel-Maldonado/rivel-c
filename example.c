@@ -264,8 +264,24 @@ static int64_t rivel_fn_main(void) {
         int64_t rivel_local_signed_distance_8 = (-rivel_local_signed_distance_5);
         rivel_print_int(rivel_local_signed_distance_8);
     }
-    int64_t rivel_return_value_9 = rivel_local_target_1;
-    return rivel_return_value_9;
+    RivelString rivel_local_x_9 = (RivelString){"H" "e" "l" "l" "o", 5, NULL};
+    {
+        int64_t rivel_range_start_10 = INT64_C(1);
+        int64_t rivel_range_end_11 = INT64_C(5);
+        if (rivel_range_start_10 <= rivel_range_end_11) {
+            int64_t rivel_local_i_12 = rivel_range_start_10;
+            while (true) {
+                rivel_print_string_take(rivel_string_retain(rivel_local_x_9));
+                if (rivel_local_i_12 == rivel_range_end_11) {
+                    break;
+                }
+                rivel_local_i_12 += INT64_C(1);
+            }
+        }
+    }
+    int64_t rivel_return_value_13 = rivel_local_target_1;
+    rivel_string_release(rivel_local_x_9);
+    return rivel_return_value_13;
 }
 
 static int64_t rivel_fn_fib(int64_t rivel_param_n) {
@@ -338,22 +354,8 @@ static int64_t rivel_fn_emit_report(int64_t rivel_param_target, int64_t rivel_pa
     rivel_print_bool(rivel_fn_is_even(rivel_param_target));
     rivel_print_int(rivel_fn_distance_from_limit(rivel_param_target, rivel_global_LIMIT));
     rivel_print_bool(rivel_fn_report_consistent(rivel_param_target, rivel_param_previous, rivel_param_total));
-    {
-        int64_t rivel_range_start_0 = INT64_C(1);
-        int64_t rivel_range_end_1 = INT64_C(5);
-        if (rivel_range_start_0 <= rivel_range_end_1) {
-            int64_t rivel_local_i_2 = rivel_range_start_0;
-            while (true) {
-                rivel_print_int((rivel_local_i_2 * INT64_C(2)));
-                if (rivel_local_i_2 == rivel_range_end_1) {
-                    break;
-                }
-                rivel_local_i_2 += INT64_C(1);
-            }
-        }
-    }
-    int64_t rivel_return_value_3 = rivel_param_total;
-    return rivel_return_value_3;
+    int64_t rivel_return_value_0 = rivel_param_total;
+    return rivel_return_value_0;
 }
 
 int main(void) {
