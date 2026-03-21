@@ -21,6 +21,75 @@ static bool backend_is_wrapped_once(const char *text) {
     return depth == 0;
 }
 
+static char *backend_emit_struct_literal_expr(Backend *backend, const Expr *expr) {
+    StrBuf buf;
+    size_t index = 0U;
+    char *copy;
+
+    strbuf_init(&buf);
+    if (!strbuf_append_fmt(&buf,
+                           backend->error,
+                           "((%s){",
+                           backend_c_type(backend, (Type){.kind = TYPE_STRUCT, .struct_name = expr->as.struct_literal.struct_name}))) {
+        strbuf_free(&buf);
+        return NULL;
+    }
+    while (index < struct_literal_field_list_len(&expr->as.struct_literal.fields)) {
+        const StructLiteralField *field = struct_literal_field_list_get_const(&expr->as.struct_literal.fields, index);
+        char *value = backend_emit_expr(backend, field->value);
+
+        if (value == NULL) {
+            strbuf_free(&buf);
+            return NULL;
+        }
+        if (index > 0U && !strbuf_append_cstr(&buf, ", ", backend->error)) {
+            strbuf_free(&buf);
+            return NULL;
+        }
+        if (!strbuf_append_fmt(&buf, backend->error, ".%.*s = %s", (int)field->name.len, field->name.data, value)) {
+            strbuf_free(&buf);
+            return NULL;
+        }
+        index += 1U;
+    }
+    if (!strbuf_append_cstr(&buf, "})", backend->error)) {
+        strbuf_free(&buf);
+        return NULL;
+    }
+
+    copy = arena_copy_cstr(backend->arena, strbuf_cstr(&buf), backend->error);
+    strbuf_free(&buf);
+    return copy;
+}
+
+static char *backend_emit_field_expr(Backend *backend, const Expr *expr) {
+    Type base_type;
+    Type field_type;
+    const StructFieldDecl *field_decl;
+    char *base_value;
+
+    if (!backend_expr_type_checked(backend, expr->as.field.base, &base_type)
+        || !backend_expr_type_checked(backend, expr, &field_type)) {
+        return NULL;
+    }
+    field_decl = backend_lookup_struct_field(backend, base_type.struct_name, expr->as.field.name);
+    if (field_decl == NULL) {
+        return NULL;
+    }
+    base_value = backend_emit_expr(backend, expr->as.field.base);
+    if (base_value == NULL) {
+        return NULL;
+    }
+    if (backend_type_contains_owned_strings(backend, base_type)) {
+        return arena_printf(backend->arena,
+                            backend->error,
+                            "%s(%s)",
+                            backend_struct_take_field_name(backend, base_type.struct_name, field_decl->name),
+                            base_value);
+    }
+    return arena_printf(backend->arena, backend->error, "(%s.%.*s)", base_value, (int)expr->as.field.name.len, expr->as.field.name.data);
+}
+
 static char *backend_join_call(Backend *backend, const char *callee, const ExprList *args) {
     StrBuf buf;
     size_t index = 0U;
@@ -72,10 +141,7 @@ static char *backend_emit_name_expr(Backend *backend, const Expr *expr) {
     if (name == NULL) {
         return NULL;
     }
-    if (type.kind == TYPE_STRING) {
-        return arena_printf(backend->arena, backend->error, "rivel_string_retain(%s)", name);
-    }
-    return name;
+    return backend_retain_value_expr(backend, type, name);
 }
 
 static char *backend_emit_builtin_call_expr(Backend *backend, const Expr *expr) {
@@ -207,6 +273,8 @@ char *backend_emit_expr(Backend *backend, const Expr *expr) {
         ConstValue value;
 
         value.type.kind = TYPE_STRING;
+        value.type.struct_name = slice_from_parts(NULL, 0U);
+        value.type.struct_name_cstr = NULL;
         value.int_value = 0;
         value.double_value = 0.0;
         value.bool_value = false;
@@ -221,6 +289,12 @@ char *backend_emit_expr(Backend *backend, const Expr *expr) {
             return backend_emit_builtin_call_expr(backend, expr);
         }
         return backend_join_call(backend, backend_function_name(backend, expr->as.call.callee), &expr->as.call.args);
+    }
+    if (expr->kind == EXPR_STRUCT_LITERAL) {
+        return backend_emit_struct_literal_expr(backend, expr);
+    }
+    if (expr->kind == EXPR_FIELD) {
+        return backend_emit_field_expr(backend, expr);
     }
     if (expr->kind == EXPR_UNARY) {
         char *operand = backend_emit_expr(backend, expr->as.unary.operand);

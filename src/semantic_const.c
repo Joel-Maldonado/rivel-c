@@ -151,8 +151,8 @@ static bool semantic_record_const_result(Analyzer *analyzer, const Expr *expr, C
 }
 
 static bool analyzer_evaluate_builtin_const_expr(Analyzer *analyzer, const Expr *call_expr, BuiltinKind builtin_kind, ConstValue *out_value) {
-    Type int_type = {TYPE_INT};
-    Type string_type = {TYPE_STRING};
+    Type int_type = {.kind = TYPE_INT};
+    Type string_type = {.kind = TYPE_STRING};
     ConstValue arg0;
     ConstValue arg1;
     ConstValue arg2;
@@ -335,6 +335,9 @@ static bool analyzer_evaluate_binary_const_expr(Analyzer *analyzer, const Expr *
             return semantic_record_const_result(analyzer, expr, semantic_make_bool(bool_result), out_value);
         case TOKEN_EQ_EQ:
         case TOKEN_BANG_EQ:
+            if (lhs.type.kind == TYPE_STRUCT || rhs.type.kind == TYPE_STRUCT) {
+                return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Equality operators do not support struct operands");
+            }
             if (!type_equal(lhs.type, rhs.type) && !(const_value_is_numeric(lhs) && const_value_is_numeric(rhs))) {
                 return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Equality operators require matching operand types");
             }
@@ -392,6 +395,12 @@ bool analyzer_evaluate_const_expr(Analyzer *analyzer, const Expr *expr, ConstVal
         }
         return analyzer_evaluate_builtin_const_expr(analyzer, expr, builtin->kind, out_value);
     }
+    if (expr->kind == EXPR_STRUCT_LITERAL) {
+        return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Struct literals are not allowed in top-level constants");
+    }
+    if (expr->kind == EXPR_FIELD) {
+        return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Field access is not allowed in top-level constants");
+    }
     if (expr->kind == EXPR_UNARY) {
         ConstValue operand;
 
@@ -407,7 +416,7 @@ bool analyzer_evaluate_const_expr(Analyzer *analyzer, const Expr *expr, ConstVal
             }
             return semantic_record_const_result(analyzer, expr, semantic_make_double(-operand.double_value), out_value);
         }
-        if (!analyzer_require_type(analyzer, expr->token, operand.type, (Type){TYPE_BOOL}, "`not` expects Bool")) {
+        if (!analyzer_require_type(analyzer, expr->token, operand.type, (Type){.kind = TYPE_BOOL}, "`not` expects Bool")) {
             return false;
         }
         return semantic_record_const_result(analyzer, expr, semantic_make_bool(!operand.bool_value), out_value);
@@ -423,10 +432,10 @@ bool analyzer_evaluate_const_expr(Analyzer *analyzer, const Expr *expr, ConstVal
             return false;
         }
         if (expr->as.binary.op == TOKEN_KW_AND || expr->as.binary.op == TOKEN_KW_OR) {
-            if (!analyzer_require_type(analyzer, expr->token, lhs.type, (Type){TYPE_BOOL}, expr->as.binary.op == TOKEN_KW_AND ? "`and` expects Bool operands" : "`or` expects Bool operands")) {
+            if (!analyzer_require_type(analyzer, expr->token, lhs.type, (Type){.kind = TYPE_BOOL}, expr->as.binary.op == TOKEN_KW_AND ? "`and` expects Bool operands" : "`or` expects Bool operands")) {
                 return false;
             }
-            if (!analyzer_require_type(analyzer, expr->token, rhs.type, (Type){TYPE_BOOL}, expr->as.binary.op == TOKEN_KW_AND ? "`and` expects Bool operands" : "`or` expects Bool operands")) {
+            if (!analyzer_require_type(analyzer, expr->token, rhs.type, (Type){.kind = TYPE_BOOL}, expr->as.binary.op == TOKEN_KW_AND ? "`and` expects Bool operands" : "`or` expects Bool operands")) {
                 return false;
             }
             return semantic_record_const_result(

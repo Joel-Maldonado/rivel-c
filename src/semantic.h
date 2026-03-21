@@ -30,6 +30,10 @@ typedef struct {
     const Decl *decl;
 } SemanticFunctionInfo;
 
+typedef struct {
+    const Decl *decl;
+} SemanticStructInfo;
+
 typedef enum {
     BUILTIN_PRINT,
     BUILTIN_LEN,
@@ -48,6 +52,7 @@ void semantic_result_dispose(SemanticResult *result);
 bool semantic_analyze(const Program *program, SemanticResult *result, CompileError *error);
 const SemanticGlobalInfo *semantic_lookup_global(const SemanticResult *result, StrSlice name);
 const SemanticFunctionInfo *semantic_lookup_function(const SemanticResult *result, StrSlice name);
+const SemanticStructInfo *semantic_lookup_struct(const SemanticResult *result, StrSlice name);
 const SemanticBuiltinInfo *semantic_lookup_builtin(const SemanticResult *result, StrSlice name);
 bool semantic_global_const_value(const SemanticResult *result, StrSlice name, ConstValue *out_value);
 bool semantic_expr_type(const SemanticResult *result, const Expr *expr, Type *out_type);

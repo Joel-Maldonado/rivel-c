@@ -72,11 +72,13 @@ Flags:
 ### Declarations and Types
 
 - top-level `const` declarations
+- top-level `struct` declarations
 - function declarations with explicit parameter and return types
 - required entrypoint `fn main() -> Int`
 - local `const` and `mut` bindings
 - optional type annotations on local bindings with inference from the initializer
 - built-in types: `Int`, `Double`, `Bool`, and `String`
+- nominal struct types with named fields
 
 ### Statements and Control Flow
 
@@ -85,12 +87,15 @@ Flags:
 - `while`
 - `for i in start..end` and `for i in start..=end` over `Int` ranges
 - assignments to `mut` bindings
+- assignments to fields through mutable local struct bindings
 - function-call statements such as `print(x)` or `helper()`
 
 ### Expressions
 
 - integer, decimal double, boolean, and string literals
+- struct literals such as `Person { name: "John", age: 23 }`
 - identifier references
+- field access with `.`, such as `person.age`
 - named function calls in expression position
 - grouped expressions with `(...)`
 - unary operators: `-`, `not`
@@ -105,6 +110,7 @@ Flags:
 - top-level constant evaluation
 - builtin `print(expr)` for `Int`, `Double`, `Bool`, and `String`
 - string builtins `len`, `substr`, `contains`, `starts_with`, `ends_with`
+- struct values are copied by value; string-containing structs retain and release nested strings automatically
 - strings are immutable UTF-8 byte sequences; `len` and `substr` use byte counts
 - division and modulo by zero are checked at runtime and terminate with an error
 - substring bounds are checked at runtime and terminate with an error
@@ -115,12 +121,13 @@ Flags:
 The language is tiny and not developed yet. Some important limits:
 
 - one input file per compiler invocation
-- only `Int`, `Double`, `Bool`, and `String` exist today
 - no imports or modules
-- no character literals, lists, or member access
+- no character literals or lists
 - no string indexing or `Char` type
 - no generic iterables, range values, or stepped/reverse `for` loops
 - no top-level `mut`
+- no methods, struct equality, or top-level `const` struct values
+- no recursive/self-referential structs
 - `print(...)` is a statement-only builtin, not an expression
 - conditions for `if` and `while` must not be wrapped directly in outer parentheses
 

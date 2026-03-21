@@ -1,0 +1,7 @@
+struct Person {
+    friend: Person
+}
+
+fn main() -> Int {
+    return 0
+}

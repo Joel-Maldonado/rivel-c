@@ -114,18 +114,103 @@ void backend_indent_pop(Backend *backend) {
     }
 }
 
-const char *backend_c_type(Type type) {
+char *backend_struct_type_name(Backend *backend, StrSlice name) {
+    return arena_printf(backend->arena, backend->error, "RivelStruct_%.*s", (int)name.len, name.data);
+}
+
+char *backend_struct_retain_name(Backend *backend, StrSlice name) {
+    return arena_printf(backend->arena, backend->error, "rivel_struct_%.*s_retain", (int)name.len, name.data);
+}
+
+char *backend_struct_release_name(Backend *backend, StrSlice name) {
+    return arena_printf(backend->arena, backend->error, "rivel_struct_%.*s_release", (int)name.len, name.data);
+}
+
+char *backend_struct_take_field_name(Backend *backend, StrSlice struct_name, StrSlice field_name) {
+    return arena_printf(backend->arena,
+                        backend->error,
+                        "rivel_struct_%.*s_take_%.*s",
+                        (int)struct_name.len,
+                        struct_name.data,
+                        (int)field_name.len,
+                        field_name.data);
+}
+
+const SemanticStructInfo *backend_lookup_struct_checked(Backend *backend, StrSlice name) {
+    const SemanticStructInfo *info = semantic_lookup_struct(backend->semantics, name);
+
+    if (info != NULL) {
+        return info;
+    }
+    error_set(backend->error, "Backend", "Internal error: unknown struct `%.*s` during C emission", (int)name.len, name.data);
+    return NULL;
+}
+
+const StructFieldDecl *backend_lookup_struct_field(Backend *backend, StrSlice struct_name, StrSlice field_name) {
+    const SemanticStructInfo *struct_info = backend_lookup_struct_checked(backend, struct_name);
+    size_t index = 0U;
+
+    if (struct_info == NULL) {
+        return NULL;
+    }
+    while (index < struct_field_decl_list_len(&struct_info->decl->as.struct_decl.fields)) {
+        const StructFieldDecl *field = struct_field_decl_list_get_const(&struct_info->decl->as.struct_decl.fields, index);
+
+        if (slice_equal(field->name, field_name)) {
+            return field;
+        }
+        index += 1U;
+    }
+
+    error_set(backend->error,
+              "Backend",
+              "Internal error: struct `%.*s` has no field `%.*s` during C emission",
+              (int)struct_name.len,
+              struct_name.data,
+              (int)field_name.len,
+              field_name.data);
+    return NULL;
+}
+
+bool backend_type_contains_owned_strings(Backend *backend, Type type) {
+    size_t index = 0U;
+    const SemanticStructInfo *struct_info;
+
+    if (type.kind == TYPE_STRING) {
+        return true;
+    }
+    if (type.kind != TYPE_STRUCT) {
+        return false;
+    }
+    struct_info = backend_lookup_struct_checked(backend, type.struct_name);
+    if (struct_info == NULL) {
+        return false;
+    }
+    while (index < struct_field_decl_list_len(&struct_info->decl->as.struct_decl.fields)) {
+        const StructFieldDecl *field = struct_field_decl_list_get_const(&struct_info->decl->as.struct_decl.fields, index);
+
+        if (backend_type_contains_owned_strings(backend, field->type)) {
+            return true;
+        }
+        index += 1U;
+    }
+    return false;
+}
+
+char *backend_c_type(Backend *backend, Type type) {
     switch (type.kind) {
         case TYPE_INT:
-            return "int64_t";
+            return arena_copy_cstr(backend->arena, "int64_t", backend->error);
         case TYPE_DOUBLE:
-            return "double";
+            return arena_copy_cstr(backend->arena, "double", backend->error);
         case TYPE_BOOL:
-            return "bool";
+            return arena_copy_cstr(backend->arena, "bool", backend->error);
         case TYPE_STRING:
-            return "RivelString";
+            return arena_copy_cstr(backend->arena, "RivelString", backend->error);
+        case TYPE_STRUCT:
+            return backend_struct_type_name(backend, type.struct_name);
     }
-    return "<type>";
+    return arena_copy_cstr(backend->arena, "<type>", backend->error);
 }
 
 char *backend_double_literal(Backend *backend, double value) {
@@ -202,6 +287,35 @@ char *backend_resolve_name(Backend *backend, StrSlice name) {
     return NULL;
 }
 
+char *backend_retain_value_expr(Backend *backend, Type type, const char *value) {
+    if (type.kind == TYPE_STRING) {
+        return arena_printf(backend->arena, backend->error, "rivel_string_retain(%s)", value);
+    }
+    if (type.kind == TYPE_STRUCT && backend_type_contains_owned_strings(backend, type)) {
+        return arena_printf(backend->arena,
+                            backend->error,
+                            "%s(%s)",
+                            backend_struct_retain_name(backend, type.struct_name),
+                            value);
+    }
+    return (char *)value;
+}
+
+bool backend_emit_release_value(Backend *backend, Type type, const char *value) {
+    if (type.kind == TYPE_STRING) {
+        return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_string_release(%s);", value));
+    }
+    if (type.kind == TYPE_STRUCT && backend_type_contains_owned_strings(backend, type)) {
+        return backend_emit_line(backend,
+                                 arena_printf(backend->arena,
+                                              backend->error,
+                                              "%s(%s);",
+                                              backend_struct_release_name(backend, type.struct_name),
+                                              value));
+    }
+    return true;
+}
+
 bool backend_add_local(Backend *backend, StrSlice name, const char *c_name, Type type) {
     BackendScope *scope = backend_scope_stack_get(&backend->scopes, backend_scope_stack_len(&backend->scopes) - 1U);
     LocalBinding *binding = (LocalBinding *)arena_alloc_zero(backend->arena, sizeof(*binding), _Alignof(LocalBinding), backend->error);
@@ -237,8 +351,7 @@ bool backend_emit_scope_releases(Backend *backend, size_t scope_index) {
     while (scope->ordered_bindings.len > 0U) {
         const LocalBinding *binding = *(const LocalBinding **)vec_get(&scope->ordered_bindings, scope->ordered_bindings.len - 1U);
 
-        if (binding->type.kind == TYPE_STRING
-            && !backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_string_release(%s);", binding->c_name))) {
+        if (!backend_emit_release_value(backend, binding->type, binding->c_name)) {
             return false;
         }
         scope->ordered_bindings.len -= 1U;

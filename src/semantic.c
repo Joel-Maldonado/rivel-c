@@ -10,11 +10,13 @@ SemanticResult *semantic_result_create(Arena *arena, CompileError *error) {
     result->arena = arena;
     semantic_global_table_init(&result->globals, arena);
     semantic_function_table_init(&result->functions, arena);
+    semantic_struct_table_init(&result->structs, arena);
     semantic_builtin_table_init(&result->builtins, arena);
     expr_type_table_init(&result->expr_types, arena);
     expr_const_table_init(&result->expr_consts, arena);
     semantic_symbol_table_init(&result->global_names);
     semantic_symbol_table_init(&result->function_names);
+    semantic_symbol_table_init(&result->struct_names);
     semantic_symbol_table_init(&result->builtin_names);
     return result;
 }
@@ -26,6 +28,7 @@ void semantic_result_dispose(SemanticResult *result) {
 
     semantic_symbol_table_free(&result->global_names);
     semantic_symbol_table_free(&result->function_names);
+    semantic_symbol_table_free(&result->struct_names);
     semantic_symbol_table_free(&result->builtin_names);
 }
 
@@ -93,6 +96,15 @@ const SemanticFunctionInfo *semantic_lookup_function(const SemanticResult *resul
         return NULL;
     }
     return semantic_function_table_get_const(&result->functions, index);
+}
+
+const SemanticStructInfo *semantic_lookup_struct(const SemanticResult *result, StrSlice name) {
+    size_t index;
+
+    if (!semantic_symbol_table_get(&result->struct_names, name, &index)) {
+        return NULL;
+    }
+    return semantic_struct_table_get_const(&result->structs, index);
 }
 
 const SemanticBuiltinInfo *semantic_lookup_builtin(const SemanticResult *result, StrSlice name) {

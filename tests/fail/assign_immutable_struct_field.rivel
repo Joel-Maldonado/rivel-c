@@ -1,0 +1,9 @@
+struct Person {
+    age: Int
+}
+
+fn main() -> Int {
+    const person = Person { age: 23 }
+    person.age = 24
+    return person.age
+}

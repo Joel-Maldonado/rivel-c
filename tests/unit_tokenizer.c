@@ -30,7 +30,35 @@ static void test_tokenize_for_range_header(void) {
     arena_free(&arena);
 }
 
+static void test_tokenize_struct_literal_and_field_access(void) {
+    Arena arena;
+    CompileError error;
+    TokenList tokens;
+
+    arena_init(&arena, 4096U);
+    error_init(&error);
+    token_list_init(&tokens, &arena);
+
+    assert(tokenize_source("struct Person { name: String }\nperson.name", &arena, &tokens, &error));
+    assert(token_list_get_const(&tokens, 0U)->type == TOKEN_KW_STRUCT);
+    assert(token_list_get_const(&tokens, 1U)->type == TOKEN_IDENTIFIER);
+    assert(token_list_get_const(&tokens, 2U)->type == TOKEN_OPEN_BRACE);
+    assert(token_list_get_const(&tokens, 3U)->type == TOKEN_IDENTIFIER);
+    assert(token_list_get_const(&tokens, 4U)->type == TOKEN_COLON);
+    assert(token_list_get_const(&tokens, 5U)->type == TOKEN_KW_TYPE_STRING);
+    assert(token_list_get_const(&tokens, 6U)->type == TOKEN_CLOSE_BRACE);
+    assert(token_list_get_const(&tokens, 7U)->type == TOKEN_END_STMT);
+    assert(token_list_get_const(&tokens, 8U)->type == TOKEN_IDENTIFIER);
+    assert(token_list_get_const(&tokens, 9U)->type == TOKEN_DOT);
+    assert(token_list_get_const(&tokens, 10U)->type == TOKEN_IDENTIFIER);
+    assert(token_list_get_const(&tokens, 11U)->type == TOKEN_EOF);
+
+    error_free(&error);
+    arena_free(&arena);
+}
+
 int main(void) {
     test_tokenize_for_range_header();
+    test_tokenize_struct_literal_and_field_access();
     return 0;
 }

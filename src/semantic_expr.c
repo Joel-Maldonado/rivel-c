@@ -1,5 +1,20 @@
 #include "semantic_internal.h"
 
+static const StructFieldDecl *analyzer_lookup_struct_field(const SemanticStructInfo *info, StrSlice field_name) {
+    size_t index = 0U;
+
+    while (index < struct_field_decl_list_len(&info->decl->as.struct_decl.fields)) {
+        const StructFieldDecl *field = struct_field_decl_list_get_const(&info->decl->as.struct_decl.fields, index);
+
+        if (slice_equal(field->name, field_name)) {
+            return field;
+        }
+        index += 1U;
+    }
+
+    return NULL;
+}
+
 static bool analyzer_builtin_expect_arg_count(Analyzer *analyzer, const Expr *call_expr, size_t expected_count) {
     if (expr_list_len(&call_expr->as.call.args) != expected_count) {
         return error_set_at(analyzer->error,
@@ -36,9 +51,9 @@ static bool analyzer_builtin_require_arg_type(Analyzer *analyzer, const Expr *ca
 }
 
 static bool analyzer_analyze_binary_expr(Analyzer *analyzer, Token token, TokenType op, Type lhs, Type rhs, Type *out_type) {
-    Type int_type = {TYPE_INT};
-    Type bool_type = {TYPE_BOOL};
-    Type string_type = {TYPE_STRING};
+    Type int_type = {.kind = TYPE_INT};
+    Type bool_type = {.kind = TYPE_BOOL};
+    Type string_type = {.kind = TYPE_STRING};
 
     switch (op) {
         case TOKEN_PLUS:
@@ -76,6 +91,9 @@ static bool analyzer_analyze_binary_expr(Analyzer *analyzer, Token token, TokenT
             return true;
         case TOKEN_EQ_EQ:
         case TOKEN_BANG_EQ:
+            if (lhs.kind == TYPE_STRUCT || rhs.kind == TYPE_STRUCT) {
+                return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Equality operators do not support struct operands");
+            }
             if (!type_equal(lhs, rhs) && !(type_is_numeric(lhs) && type_is_numeric(rhs))) {
                 return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Equality operators require matching operand types");
             }
@@ -94,8 +112,8 @@ static bool analyzer_analyze_binary_expr(Analyzer *analyzer, Token token, TokenT
 }
 
 static bool analyzer_analyze_builtin_call(Analyzer *analyzer, const Expr *call_expr, SemanticBuiltinInfo builtin, bool allow_statement_only_builtins, Type *out_type) {
-    Type int_type = {TYPE_INT};
-    Type string_type = {TYPE_STRING};
+    Type int_type = {.kind = TYPE_INT};
+    Type string_type = {.kind = TYPE_STRING};
     Type arg_type;
 
     if (builtin.kind == BUILTIN_PRINT) {
@@ -226,6 +244,134 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
         if (!analyzer_analyze_call(analyzer, expr, false, out_type)) {
             return false;
         }
+    } else if (expr->kind == EXPR_STRUCT_LITERAL) {
+        const SemanticStructInfo *struct_info = analyzer_lookup_struct(analyzer, expr->as.struct_literal.struct_name);
+        size_t field_index = 0U;
+
+        if (struct_info == NULL) {
+            return error_set_at(analyzer->error,
+                                "Semantic",
+                                expr->token.line,
+                                expr->token.column,
+                                "Unknown struct `%.*s`",
+                                (int)expr->as.struct_literal.struct_name.len,
+                                expr->as.struct_literal.struct_name.data);
+        }
+        while (field_index < struct_literal_field_list_len(&expr->as.struct_literal.fields)) {
+            const StructLiteralField *field = struct_literal_field_list_get_const(&expr->as.struct_literal.fields, field_index);
+            const StructFieldDecl *field_decl = analyzer_lookup_struct_field(struct_info, field->name);
+            size_t prior_index = 0U;
+            Type value_type;
+
+            if (field_decl == NULL) {
+                return error_set_at(analyzer->error,
+                                    "Semantic",
+                                    field->token.line,
+                                    field->token.column,
+                                    "Struct `%.*s` has no field named `%.*s`",
+                                    (int)expr->as.struct_literal.struct_name.len,
+                                    expr->as.struct_literal.struct_name.data,
+                                    (int)field->name.len,
+                                    field->name.data);
+            }
+            while (prior_index < field_index) {
+                const StructLiteralField *prior_field = struct_literal_field_list_get_const(&expr->as.struct_literal.fields, prior_index);
+
+                if (slice_equal(prior_field->name, field->name)) {
+                    return error_set_at(analyzer->error,
+                                        "Semantic",
+                                        field->token.line,
+                                        field->token.column,
+                                        "Struct literal for `%.*s` initializes field `%.*s` more than once",
+                                        (int)expr->as.struct_literal.struct_name.len,
+                                        expr->as.struct_literal.struct_name.data,
+                                        (int)field->name.len,
+                                        field->name.data);
+                }
+                prior_index += 1U;
+            }
+            if (!analyzer_analyze_expr(analyzer, field->value, &value_type)) {
+                return false;
+            }
+            if (!type_can_widen_to(value_type, field_decl->type)) {
+                return error_set_at(analyzer->error,
+                                    "Semantic",
+                                    field->token.line,
+                                    field->token.column,
+                                    "Field `%.*s` of `%.*s` expects %s but got %s",
+                                    (int)field->name.len,
+                                    field->name.data,
+                                    (int)expr->as.struct_literal.struct_name.len,
+                                    expr->as.struct_literal.struct_name.data,
+                                    type_display_name(field_decl->type),
+                                    type_display_name(value_type));
+            }
+            field_index += 1U;
+        }
+        if (field_index != struct_field_decl_list_len(&struct_info->decl->as.struct_decl.fields)) {
+            size_t decl_index = 0U;
+
+            while (decl_index < struct_field_decl_list_len(&struct_info->decl->as.struct_decl.fields)) {
+                const StructFieldDecl *field_decl = struct_field_decl_list_get_const(&struct_info->decl->as.struct_decl.fields, decl_index);
+                size_t literal_index = 0U;
+                bool found = false;
+
+                while (literal_index < struct_literal_field_list_len(&expr->as.struct_literal.fields)) {
+                    const StructLiteralField *field = struct_literal_field_list_get_const(&expr->as.struct_literal.fields, literal_index);
+                    if (slice_equal(field_decl->name, field->name)) {
+                        found = true;
+                        break;
+                    }
+                    literal_index += 1U;
+                }
+                if (!found) {
+                    return error_set_at(analyzer->error,
+                                        "Semantic",
+                                        expr->token.line,
+                                        expr->token.column,
+                                        "Struct literal for `%.*s` is missing field `%.*s`",
+                                        (int)expr->as.struct_literal.struct_name.len,
+                                        expr->as.struct_literal.struct_name.data,
+                                        (int)field_decl->name.len,
+                                        field_decl->name.data);
+                }
+                decl_index += 1U;
+            }
+        }
+        out_type->kind = TYPE_STRUCT;
+        out_type->struct_name = expr->as.struct_literal.struct_name;
+        out_type->struct_name_cstr = arena_copy_slice(analyzer->result->arena, expr->as.struct_literal.struct_name, analyzer->error);
+        if (out_type->struct_name_cstr == NULL) {
+            return false;
+        }
+    } else if (expr->kind == EXPR_FIELD) {
+        Type base_type;
+        const SemanticStructInfo *struct_info;
+        const StructFieldDecl *field_decl;
+
+        if (!analyzer_analyze_expr(analyzer, expr->as.field.base, &base_type)) {
+            return false;
+        }
+        if (base_type.kind != TYPE_STRUCT) {
+            return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Field access requires a struct value");
+        }
+        struct_info = analyzer_lookup_struct(analyzer, base_type.struct_name);
+        if (struct_info == NULL) {
+            return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Unknown struct `%.*s`", (int)base_type.struct_name.len, base_type.struct_name.data);
+        }
+        field_decl = analyzer_lookup_struct_field(struct_info, expr->as.field.name);
+        if (field_decl == NULL) {
+            return error_set_at(analyzer->error,
+                                "Semantic",
+                                expr->token.line,
+                                expr->token.column,
+                                "Struct `%.*s` has no field named `%.*s`",
+                                (int)base_type.struct_name.len,
+                                base_type.struct_name.data,
+                                (int)expr->as.field.name.len,
+                                expr->as.field.name.data);
+        }
+        *out_type = field_decl->type;
     } else if (expr->kind == EXPR_UNARY) {
         Type operand_type;
 

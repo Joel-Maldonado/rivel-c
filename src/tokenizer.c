@@ -37,6 +37,7 @@ static const Keyword TOKENIZER_KEYWORDS[] = {
     {"const", TOKEN_KW_CONST},
     {"mut", TOKEN_KW_MUT},
     {"fn", TOKEN_KW_FN},
+    {"struct", TOKEN_KW_STRUCT},
     {"return", TOKEN_KW_RETURN},
     {"if", TOKEN_KW_IF},
     {"elif", TOKEN_KW_ELIF},
@@ -416,7 +417,10 @@ bool tokenize_source(const char *source, Arena *arena, TokenList *out_tokens, Co
             case '.':
                 tokenizer_advance(&tokenizer);
                 if (tokenizer_peek(&tokenizer, 0U) != '.') {
-                    return error_set_at(error, "Lexer", line, column, "Member access is not part of Rivel v1");
+                    if (!tokenizer_add_token(&tokenizer, TOKEN_DOT, tokenizer.source + tokenizer.index - 1U, 1U, line, column)) {
+                        return false;
+                    }
+                    break;
                 }
                 tokenizer_advance(&tokenizer);
                 if (tokenizer_peek(&tokenizer, 0U) == '=') {

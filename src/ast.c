@@ -67,6 +67,8 @@ static Decl **decl_list_storage_get(const DeclList *list, size_t index) {
 
 DEFINE_AST_LIST_FUNCS(IfBranchList, IfBranch, if_branch_list, if_branch_list_get, if_branch_list_get_const)
 DEFINE_AST_LIST_FUNCS(ParamList, Param, param_list, param_list_get, param_list_get_const)
+DEFINE_AST_LIST_FUNCS(StructFieldDeclList, StructFieldDecl, struct_field_decl_list, struct_field_decl_list_get, struct_field_decl_list_get_const)
+DEFINE_AST_LIST_FUNCS(StructLiteralFieldList, StructLiteralField, struct_literal_field_list, struct_literal_field_list_get, struct_literal_field_list_get_const)
 
 const char *type_display_name(Type type) {
     switch (type.kind) {
@@ -78,13 +80,21 @@ const char *type_display_name(Type type) {
             return "Bool";
         case TYPE_STRING:
             return "String";
+        case TYPE_STRUCT:
+            return type.struct_name_cstr != NULL ? type.struct_name_cstr : "<struct>";
     }
 
     return "<type>";
 }
 
 bool type_equal(Type lhs, Type rhs) {
-    return lhs.kind == rhs.kind;
+    if (lhs.kind != rhs.kind) {
+        return false;
+    }
+    if (lhs.kind != TYPE_STRUCT) {
+        return true;
+    }
+    return slice_equal(lhs.struct_name, rhs.struct_name);
 }
 
 bool type_is_numeric(Type type) {

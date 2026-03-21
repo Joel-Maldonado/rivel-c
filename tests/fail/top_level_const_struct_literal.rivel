@@ -1,0 +1,9 @@
+struct Person {
+    age: Int
+}
+
+const DEFAULT_PERSON: Person = Person { age: 1 }
+
+fn main() -> Int {
+    return 0
+}
