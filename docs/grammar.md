@@ -64,7 +64,7 @@ The current reserved keywords and built-in literals are:
 ```txt
 const  mut  fn  return  if  elif  else  while
 and  or  not
-Int  Bool
+Int  Bool  String
 true  false
 ```
 
@@ -77,8 +77,17 @@ Rivel v1 supports:
 
 - decimal integer literals, stored as signed 64-bit `Int`
 - boolean literals: `true`, `false`
+- string literals in double quotes
 
-String literals, character literals, and list literals are not part of v1.
+Strings are immutable UTF-8 byte sequences. Supported escapes are:
+
+- `\\`
+- `\"`
+- `\n`
+- `\r`
+- `\t`
+
+Character literals and list literals are not part of v1.
 
 ## Top-Level Structure
 
@@ -92,7 +101,7 @@ FunctionDecl    ::= "fn" IDENT "(" ParamList? ")" "->" Type Block
 ParamList       ::= Param ("," Param)*
 Param           ::= IDENT ":" Type
 TypeAnn         ::= ":" Type
-Type            ::= "Int" | "Bool"
+Type            ::= "Int" | "Bool" | "String"
 Separator       ::= NEWLINE | ";"
 ```
 
@@ -120,10 +129,11 @@ fn main() -> Int {
 
 ## Types
 
-Right now, only has exactly two types:
+Right now, Rivel has exactly three types:
 
 - `Int`
 - `Bool`
+- `String`
 
 Type annotations may appear on:
 
@@ -133,6 +143,9 @@ Type annotations may appear on:
 
 Type annotations do not appear on expressions. Local bindings may omit an
 annotation and inherit the initializer's type.
+
+`String` values are immutable UTF-8 byte sequences. `len` and `substr` count
+bytes, not Unicode scalar values.
 
 ## Blocks and Statements
 
@@ -263,7 +276,7 @@ MulExpr         ::= UnaryExpr (("*" | "/" | "%") UnaryExpr)*
 UnaryExpr       ::= ("not" | "-") UnaryExpr | CallExpr
 CallExpr        ::= IDENT "(" ArgList? ")" | Primary
 ArgList         ::= Expr ("," Expr)*
-Primary         ::= INT_LIT | BOOL_LIT | IDENT | "(" Expr ")"
+Primary         ::= INT_LIT | BOOL_LIT | STRING_LIT | IDENT | "(" Expr ")"
 ```
 
 ### Calls
@@ -283,6 +296,17 @@ fn add_one(x: Int) -> Int {
 The current language only allows calling a named function directly. You cannot
 call the result of another expression.
 
+### Builtins
+
+Builtin names are reserved top-level identifiers:
+
+- `print`
+- `len`
+- `substr`
+- `contains`
+- `starts_with`
+- `ends_with`
+
 ### Builtin `print`
 
 `print` is a builtin call statement with this effective shape:
@@ -295,7 +319,7 @@ Rules:
 
 - it must be used as a statement, not as an expression
 - it accepts exactly one argument
-- the argument must be `Int` or `Bool`
+- the argument must be `Int`, `Bool`, or `String`
 - it writes the value followed by a newline
 - `print` is a reserved top-level name
 
@@ -305,9 +329,30 @@ Example:
 fn main() -> Int {
     print(true)
     print(false)
+    print("hello")
     return 0
 }
 ```
+
+### String Builtins
+
+These builtins may be used in expression position or as standalone call
+statements:
+
+```txt
+len(s: String) -> Int
+substr(s: String, start: Int, len: Int) -> String
+contains(s: String, needle: String) -> Bool
+starts_with(s: String, prefix: String) -> Bool
+ends_with(s: String, suffix: String) -> Bool
+```
+
+Rules:
+
+- `len` returns the string's byte length
+- `substr` uses byte offsets and lengths
+- negative or out-of-range `substr` bounds are rejected in constant expressions
+- runtime `substr` bounds errors print `substring out of range` to `stderr` and exit with status `1`
 
 ## Static Semantics
 
@@ -329,7 +374,8 @@ At runtime, the returned `Int` becomes the process exit code.
 
 ### Operators and Type Rules
 
-- arithmetic operators require `Int` operands and produce `Int`
+- `+` accepts either `Int` operands and produces `Int`, or `String` operands and produces `String`
+- `-`, `*`, `/`, and `%` require `Int` operands and produce `Int`
 - comparison operators require `Int` operands and produce `Bool`
 - equality operators require matching operand types and produce `Bool`
 - `and` and `or` require `Bool` operands and produce `Bool`
@@ -357,16 +403,18 @@ Top-level `const` initializers must be constant expressions.
 
 Allowed ingredients:
 
-- integer and boolean literals
+- integer, boolean, and string literals
 - references to other top-level constants
 - unary `-` and `not`
 - supported arithmetic, comparison, equality, and logical operators
+- pure string builtins: `len`, `substr`, `contains`, `starts_with`, `ends_with`
 - grouped expressions
 
 Rejected in top-level constant initializers:
 
 - references to locals
-- function calls
+- non-builtin function calls
+- builtin `print`
 - cyclic constant definitions
 
 Example:
@@ -382,10 +430,15 @@ The generated program includes runtime helpers for:
 
 - printing `Int`
 - printing `Bool`
+- printing `String`
 - checking division by zero for `/` and `%`
+- checking substring bounds for `substr`
 
 Division or modulo by zero prints `division by zero` to `stderr` and exits with
 status `1`.
+
+Substring bounds failures print `substring out of range` to `stderr` and exit
+with status `1`.
 
 ## Not in Rivel v1
 
@@ -393,8 +446,8 @@ The current implementation explicitly rejects these surface forms:
 
 - `import` and `from`
 - `for ... in ...`
-- string literals
 - character literals
 - list syntax
 - member access with `.`
+- string indexing
 - top-level `mut`

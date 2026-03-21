@@ -75,7 +75,10 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
     if (stmt->kind == STMT_CALL) {
         Type call_type;
 
-        return analyzer_analyze_call(analyzer, stmt->as.call.call, true, &call_type);
+        if (!analyzer_analyze_call(analyzer, stmt->as.call.call, true, &call_type)) {
+            return false;
+        }
+        return semantic_record_expr_type(analyzer->result, stmt->as.call.call, call_type, analyzer->error);
     }
     if (stmt->kind == STMT_IF) {
         Type condition_type;

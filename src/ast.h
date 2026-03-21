@@ -9,7 +9,8 @@
 
 typedef enum {
     TYPE_INT,
-    TYPE_BOOL
+    TYPE_BOOL,
+    TYPE_STRING
 } TypeKind;
 
 typedef struct {
@@ -49,6 +50,7 @@ typedef struct DeclList {
 typedef enum {
     EXPR_INT,
     EXPR_BOOL,
+    EXPR_STRING,
     EXPR_NAME,
     EXPR_UNARY,
     EXPR_BINARY,
@@ -61,6 +63,7 @@ struct Expr {
     union {
         int64_t int_value;
         bool bool_value;
+        StrSlice string_value;
         StrSlice name;
         struct {
             TokenType op;

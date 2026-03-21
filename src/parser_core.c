@@ -123,6 +123,10 @@ bool parser_parse_type(Parser *parser, Type *out_type) {
         out_type->kind = TYPE_BOOL;
         return true;
     }
+    if (parser_match(parser, TOKEN_KW_TYPE_STRING)) {
+        out_type->kind = TYPE_STRING;
+        return true;
+    }
     if (parser_is(parser, TOKEN_IDENTIFIER, 0U)) {
         const Token *token = parser_peek(parser, 0U);
         return error_set_at(parser->error, "Parse", token->line, token->column, "Unknown type `%.*s`", (int)token->lexeme.len, token->lexeme.data);

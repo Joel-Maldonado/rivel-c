@@ -74,6 +74,8 @@ const char *type_display_name(Type type) {
             return "Int";
         case TYPE_BOOL:
             return "Bool";
+        case TYPE_STRING:
+            return "String";
     }
 
     return "<type>";

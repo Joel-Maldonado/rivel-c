@@ -5,6 +5,56 @@
 
 static bool parser_parse_primary(Parser *parser, Expr **out_expr);
 
+static bool parser_decode_string_literal(Parser *parser, Token token, StrSlice *out_value) {
+    size_t max_len = token.lexeme.len >= 2U ? token.lexeme.len - 2U : 0U;
+    char *buffer;
+    size_t src_index = 1U;
+    size_t dst_index = 0U;
+
+    if (max_len == 0U) {
+        buffer = arena_copy_cstr(parser->arena, "", parser->error);
+    } else {
+        buffer = (char *)arena_alloc(parser->arena, max_len, _Alignof(char), parser->error);
+    }
+    if (buffer == NULL) {
+        return false;
+    }
+
+    while (src_index + 1U < token.lexeme.len) {
+        char current = token.lexeme.data[src_index];
+
+        if (current != '\\') {
+            buffer[dst_index++] = current;
+            src_index += 1U;
+            continue;
+        }
+
+        src_index += 1U;
+        if (src_index >= token.lexeme.len - 1U) {
+            return error_set_at(parser->error, "Parse", token.line, token.column + (int)src_index, "Unterminated string escape");
+        }
+
+        current = token.lexeme.data[src_index];
+        if (current == '\\') {
+            buffer[dst_index++] = '\\';
+        } else if (current == '"') {
+            buffer[dst_index++] = '"';
+        } else if (current == 'n') {
+            buffer[dst_index++] = '\n';
+        } else if (current == 'r') {
+            buffer[dst_index++] = '\r';
+        } else if (current == 't') {
+            buffer[dst_index++] = '\t';
+        } else {
+            return error_set_at(parser->error, "Parse", token.line, token.column + (int)src_index, "Unsupported escape sequence");
+        }
+        src_index += 1U;
+    }
+
+    *out_value = slice_from_parts(buffer, dst_index);
+    return true;
+}
+
 static bool parser_make_binary(Parser *parser, Token token, Expr *lhs, Expr *rhs, Expr **out_expr) {
     Expr *expr = parser_new_expr(parser, EXPR_BINARY);
 
@@ -254,6 +304,20 @@ static bool parser_parse_primary(Parser *parser, Expr **out_expr) {
         }
         expr->token = token;
         expr->as.bool_value = slice_equal_cstr(token.lexeme, "true");
+        *out_expr = expr;
+        return true;
+    }
+    if (parser_match(parser, TOKEN_STRING_LITERAL)) {
+        Token token = *parser_previous(parser, 0U);
+        Expr *expr = parser_new_expr(parser, EXPR_STRING);
+
+        if (expr == NULL) {
+            return false;
+        }
+        expr->token = token;
+        if (!parser_decode_string_literal(parser, token, &expr->as.string_value)) {
+            return false;
+        }
         *out_expr = expr;
         return true;
     }

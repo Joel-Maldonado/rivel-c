@@ -14,6 +14,7 @@ typedef struct {
 
 typedef struct {
     BackendBindingTable bindings;
+    Vec ordered_bindings;
 } BackendScope;
 
 typedef struct {
@@ -57,9 +58,14 @@ char *backend_function_name(Backend *backend, StrSlice name);
 char *backend_global_name(Backend *backend, StrSlice name);
 char *backend_param_name(Backend *backend, StrSlice name);
 char *backend_local_name(Backend *backend, StrSlice name);
+char *backend_temp_name(Backend *backend, const char *base);
 const LocalBinding *backend_resolve_local(const Backend *backend, StrSlice name);
 char *backend_resolve_name(Backend *backend, StrSlice name);
 bool backend_add_local(Backend *backend, StrSlice name, const char *c_name, Type type);
+bool backend_expr_type_checked(Backend *backend, const Expr *expr, Type *out_type);
+bool backend_emit_scope_releases(Backend *backend, size_t scope_index);
+bool backend_emit_all_scope_releases(Backend *backend);
+char *backend_string_literal_value(Backend *backend, StrSlice value);
 char *backend_literal(Backend *backend, ConstValue value);
 
 char *backend_emit_expr(Backend *backend, const Expr *expr);

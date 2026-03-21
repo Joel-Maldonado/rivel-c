@@ -1,14 +1,60 @@
 #include "semantic_internal.h"
 
+static bool analyzer_builtin_expect_arg_count(Analyzer *analyzer, const Expr *call_expr, size_t expected_count) {
+    if (expr_list_len(&call_expr->as.call.args) != expected_count) {
+        return error_set_at(analyzer->error,
+                            "Semantic",
+                            call_expr->token.line,
+                            call_expr->token.column,
+                            "Builtin `%.*s` expects %zu argument(s)",
+                            (int)call_expr->as.call.callee.len,
+                            call_expr->as.call.callee.data,
+                            expected_count);
+    }
+    return true;
+}
+
+static bool analyzer_builtin_require_arg_type(Analyzer *analyzer, const Expr *call_expr, size_t index, Type expected, Type *out_type) {
+    Expr *arg = expr_list_get(&call_expr->as.call.args, index);
+
+    if (!analyzer_analyze_expr(analyzer, arg, out_type)) {
+        return false;
+    }
+    if (!type_equal(*out_type, expected)) {
+        return error_set_at(analyzer->error,
+                            "Semantic",
+                            call_expr->token.line,
+                            call_expr->token.column,
+                            "Argument %zu to builtin `%.*s` has type %s, expected %s",
+                            index + 1U,
+                            (int)call_expr->as.call.callee.len,
+                            call_expr->as.call.callee.data,
+                            type_display_name(*out_type),
+                            type_display_name(expected));
+    }
+    return true;
+}
+
 static bool analyzer_analyze_binary_expr(Analyzer *analyzer, Token token, TokenType op, Type lhs, Type rhs, Type *out_type) {
     Type int_type;
     Type bool_type;
+    Type string_type;
 
     int_type.kind = TYPE_INT;
     bool_type.kind = TYPE_BOOL;
+    string_type.kind = TYPE_STRING;
 
     switch (op) {
         case TOKEN_PLUS:
+            if (lhs.kind == TYPE_INT && rhs.kind == TYPE_INT) {
+                *out_type = int_type;
+                return true;
+            }
+            if (lhs.kind == TYPE_STRING && rhs.kind == TYPE_STRING) {
+                *out_type = string_type;
+                return true;
+            }
+            return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Operator %s expects Int operands or String operands", token_name(op));
         case TOKEN_MINUS:
         case TOKEN_STAR:
         case TOKEN_SLASH:
@@ -47,22 +93,59 @@ static bool analyzer_analyze_binary_expr(Analyzer *analyzer, Token token, TokenT
 }
 
 static bool analyzer_analyze_builtin_call(Analyzer *analyzer, const Expr *call_expr, SemanticBuiltinInfo builtin, bool allow_statement_only_builtins, Type *out_type) {
-    if (builtin.kind == BUILTIN_PRINT) {
-        Type arg_type;
+    Type int_type;
+    Type string_type;
+    Type arg_type;
 
+    int_type.kind = TYPE_INT;
+    string_type.kind = TYPE_STRING;
+
+    if (builtin.kind == BUILTIN_PRINT) {
         if (!allow_statement_only_builtins) {
             return error_set_at(analyzer->error, "Semantic", call_expr->token.line, call_expr->token.column, "Builtin `print` cannot be used as an expression");
         }
-        if (expr_list_len(&call_expr->as.call.args) != 1U) {
-            return error_set_at(analyzer->error, "Semantic", call_expr->token.line, call_expr->token.column, "Builtin `print` expects 1 argument(s)");
+        if (!analyzer_builtin_expect_arg_count(analyzer, call_expr, 1U)) {
+            return false;
         }
         if (!analyzer_analyze_expr(analyzer, expr_list_get(&call_expr->as.call.args, 0U), &arg_type)) {
             return false;
         }
-        if (arg_type.kind != TYPE_INT && arg_type.kind != TYPE_BOOL) {
+        if (arg_type.kind != TYPE_INT && arg_type.kind != TYPE_BOOL && arg_type.kind != TYPE_STRING) {
             return error_set_at(analyzer->error, "Semantic", call_expr->token.line, call_expr->token.column, "Builtin `print` does not support argument type %s", type_display_name(arg_type));
         }
         out_type->kind = TYPE_INT;
+        return true;
+    }
+    if (builtin.kind == BUILTIN_LEN) {
+        if (!analyzer_builtin_expect_arg_count(analyzer, call_expr, 1U)
+            || !analyzer_builtin_require_arg_type(analyzer, call_expr, 0U, string_type, &arg_type)) {
+            return false;
+        }
+        *out_type = int_type;
+        return true;
+    }
+    if (builtin.kind == BUILTIN_SUBSTR) {
+        Type start_type;
+        Type len_type;
+
+        if (!analyzer_builtin_expect_arg_count(analyzer, call_expr, 3U)
+            || !analyzer_builtin_require_arg_type(analyzer, call_expr, 0U, string_type, &arg_type)
+            || !analyzer_builtin_require_arg_type(analyzer, call_expr, 1U, int_type, &start_type)
+            || !analyzer_builtin_require_arg_type(analyzer, call_expr, 2U, int_type, &len_type)) {
+            return false;
+        }
+        *out_type = string_type;
+        return true;
+    }
+    if (builtin.kind == BUILTIN_CONTAINS || builtin.kind == BUILTIN_STARTS_WITH || builtin.kind == BUILTIN_ENDS_WITH) {
+        Type rhs_type;
+
+        if (!analyzer_builtin_expect_arg_count(analyzer, call_expr, 2U)
+            || !analyzer_builtin_require_arg_type(analyzer, call_expr, 0U, string_type, &arg_type)
+            || !analyzer_builtin_require_arg_type(analyzer, call_expr, 1U, string_type, &rhs_type)) {
+            return false;
+        }
+        out_type->kind = TYPE_BOOL;
         return true;
     }
 
@@ -124,6 +207,8 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
         out_type->kind = TYPE_INT;
     } else if (expr->kind == EXPR_BOOL) {
         out_type->kind = TYPE_BOOL;
+    } else if (expr->kind == EXPR_STRING) {
+        out_type->kind = TYPE_STRING;
     } else if (expr->kind == EXPR_NAME) {
         const BindingInfo *binding = analyzer_resolve_local(analyzer, expr->as.name);
         const SemanticGlobalInfo *global;

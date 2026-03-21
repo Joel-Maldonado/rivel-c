@@ -1,0 +1,19 @@
+const GREETING: String = "hello" + " world"
+const HAS_WORLD: Bool = contains(GREETING, "world")
+const HAS_PREFIX: Bool = starts_with(GREETING, "hello")
+const HAS_SUFFIX: Bool = ends_with(GREETING, "world")
+
+fn decorate(value: String) -> String {
+    return value + "!"
+}
+
+fn main() -> Int {
+    const tail = substr(GREETING, 6, 5)
+    print(GREETING)
+    print(tail)
+    print(HAS_WORLD)
+    print(HAS_PREFIX)
+    print(HAS_SUFFIX)
+    print(decorate(tail))
+    return len(tail)
+}

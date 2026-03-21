@@ -32,6 +32,8 @@ const char *token_name(TokenType type) {
             return "integer literal";
         case TOKEN_BOOL_LITERAL:
             return "boolean literal";
+        case TOKEN_STRING_LITERAL:
+            return "string literal";
         case TOKEN_KW_CONST:
             return "`const`";
         case TOKEN_KW_MUT:
@@ -58,6 +60,8 @@ const char *token_name(TokenType type) {
             return "`Int`";
         case TOKEN_KW_TYPE_BOOL:
             return "`Bool`";
+        case TOKEN_KW_TYPE_STRING:
+            return "`String`";
         case TOKEN_OPEN_PAREN:
             return "`(`";
         case TOKEN_CLOSE_PAREN:

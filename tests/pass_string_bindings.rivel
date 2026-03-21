@@ -1,0 +1,13 @@
+fn main() -> Int {
+    const base = "a"
+    mut message = base
+
+    if true {
+        const message = message + "b"
+        print(message)
+    }
+
+    message = message + "c"
+    print(message)
+    return len(message)
+}

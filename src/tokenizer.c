@@ -48,6 +48,7 @@ static const Keyword TOKENIZER_KEYWORDS[] = {
     {"not", TOKEN_KW_NOT},
     {"Int", TOKEN_KW_TYPE_INT},
     {"Bool", TOKEN_KW_TYPE_BOOL},
+    {"String", TOKEN_KW_TYPE_STRING},
 };
 
 static bool tokenizer_is_at_end(const Tokenizer *tokenizer) {
@@ -187,6 +188,34 @@ static bool tokenizer_tokenize_int(Tokenizer *tokenizer) {
     return tokenizer_add_token(tokenizer, TOKEN_INT_LITERAL, start, (size_t)(tokenizer->source + tokenizer->index - start), line, column);
 }
 
+static bool tokenizer_tokenize_string(Tokenizer *tokenizer) {
+    const char *start = tokenizer->source + tokenizer->index;
+    int line = tokenizer->line;
+    int column = tokenizer->column;
+
+    tokenizer_advance(tokenizer);
+    while (!tokenizer_is_at_end(tokenizer)) {
+        char current = tokenizer_peek(tokenizer, 0U);
+
+        if (current == '"') {
+            tokenizer_advance(tokenizer);
+            return tokenizer_add_token(tokenizer, TOKEN_STRING_LITERAL, start, (size_t)(tokenizer->source + tokenizer->index - start), line, column);
+        }
+        if (current == '\n') {
+            return error_set_at(tokenizer->error, "Lexer", line, column, "Unterminated string literal");
+        }
+        tokenizer_advance(tokenizer);
+        if (current == '\\') {
+            if (tokenizer_is_at_end(tokenizer) || tokenizer_peek(tokenizer, 0U) == '\n') {
+                return error_set_at(tokenizer->error, "Lexer", line, column, "Unterminated string literal");
+            }
+            tokenizer_advance(tokenizer);
+        }
+    }
+
+    return error_set_at(tokenizer->error, "Lexer", line, column, "Unterminated string literal");
+}
+
 static bool tokenizer_single(Tokenizer *tokenizer, TokenType type) {
     const char *start = tokenizer->source + tokenizer->index;
     int line = tokenizer->line;
@@ -256,6 +285,12 @@ bool tokenize_source(const char *source, Arena *arena, TokenList *out_tokens, Co
         }
         if (isdigit((unsigned char)current)) {
             if (!tokenizer_tokenize_int(&tokenizer)) {
+                return false;
+            }
+            continue;
+        }
+        if (current == '"') {
+            if (!tokenizer_tokenize_string(&tokenizer)) {
                 return false;
             }
             continue;
@@ -351,8 +386,6 @@ bool tokenize_source(const char *source, Arena *arena, TokenList *out_tokens, Co
                     return false;
                 }
                 break;
-            case '"':
-                return error_set_at(error, "Lexer", line, column, "String literals are not part of Rivel v1");
             case '\'':
                 return error_set_at(error, "Lexer", line, column, "Character literals are not part of Rivel v1");
             case '[':
