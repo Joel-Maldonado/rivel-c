@@ -1,0 +1,4 @@
+fn main() -> Int {
+    # Legacy comments are no longer supported.
+    return 0
+}

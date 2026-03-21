@@ -113,10 +113,29 @@ static bool tokenizer_emit_newline_separator(Tokenizer *tokenizer) {
     return true;
 }
 
-static void tokenizer_skip_comment(Tokenizer *tokenizer) {
+static void tokenizer_skip_line_comment(Tokenizer *tokenizer) {
+    tokenizer_advance(tokenizer);
+    tokenizer_advance(tokenizer);
+
     while (!tokenizer_is_at_end(tokenizer) && tokenizer_peek(tokenizer, 0U) != '\n') {
         tokenizer_advance(tokenizer);
     }
+}
+
+static bool tokenizer_skip_block_comment(Tokenizer *tokenizer, int line, int column) {
+    tokenizer_advance(tokenizer);
+    tokenizer_advance(tokenizer);
+
+    while (!tokenizer_is_at_end(tokenizer)) {
+        if (tokenizer_peek(tokenizer, 0U) == '*' && tokenizer_peek(tokenizer, 1U) == '/') {
+            tokenizer_advance(tokenizer);
+            tokenizer_advance(tokenizer);
+            return true;
+        }
+        tokenizer_advance(tokenizer);
+    }
+
+    return error_set_at(tokenizer->error, "Lexer", line, column, "Unterminated block comment");
 }
 
 static const char *tokenizer_unsupported_identifier_message(StrSlice lexeme) {
@@ -295,10 +314,6 @@ bool tokenize_source(const char *source, Arena *arena, TokenList *out_tokens, Co
             }
             continue;
         }
-        if (current == '#') {
-            tokenizer_skip_comment(&tokenizer);
-            continue;
-        }
         if (isalpha((unsigned char)current) || current == '_') {
             if (!tokenizer_tokenize_identifier(&tokenizer)) {
                 return false;
@@ -375,11 +390,17 @@ bool tokenize_source(const char *source, Arena *arena, TokenList *out_tokens, Co
                 }
                 break;
             case '/':
-                tokenizer_advance(&tokenizer);
-                if (tokenizer_peek(&tokenizer, 0U) == '/' || tokenizer_peek(&tokenizer, 0U) == '*') {
-                    return error_set_at(error, "Lexer", line, column, "Rivel v1 only supports `#` comments");
+                if (tokenizer_peek(&tokenizer, 1U) == '/') {
+                    tokenizer_skip_line_comment(&tokenizer);
+                    break;
                 }
-                if (!tokenizer_add_token(&tokenizer, TOKEN_SLASH, tokenizer.source + tokenizer.index - 1U, 1U, line, column)) {
+                if (tokenizer_peek(&tokenizer, 1U) == '*') {
+                    if (!tokenizer_skip_block_comment(&tokenizer, line, column)) {
+                        return false;
+                    }
+                    break;
+                }
+                if (!tokenizer_single(&tokenizer, TOKEN_SLASH)) {
                     return false;
                 }
                 break;

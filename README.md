@@ -80,6 +80,7 @@ Flags:
 
 ### Statements and Control Flow
 
+- C-style comments with `//` and `/* ... */`
 - `return <expr>`
 - `if` / `elif` / `else`
 - `while`
@@ -121,6 +122,7 @@ The language is tiny and not developed yet. Some important limits:
 - no string indexing or `Char` type
 - no generic iterables, range values, or stepped/reverse `for` loops
 - no top-level `mut`
+- no `#` comments
 - `print(...)` is a statement-only builtin, not an expression
 - conditions for `if` and `while` must not be wrapped directly in outer parentheses
 
