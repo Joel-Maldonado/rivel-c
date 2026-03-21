@@ -1,104 +1,176 @@
-# Rivel Lang (C11 Compiler)
+# Rivel
 
-Rivel is a small compiled language with a strict, statically typed v1 core.
+Rivel is a small statically typed language with an intentionally tiny core.
+This repo is mostly a toy compiler project I made for fun to learn more about
+what it feels like to compile a language end to end.
 
-This compiler is written in C11 and currently targets C as an intermediate
-language:
+It is very much an educational project, not a serious production language. The
+language is limited on purpose, the compiler is small enough to read through,
+and the whole point was to try things out and see the pipeline work.
 
-`Rivel -> C -> clang -> native executable`
+Right now the compiler lowers Rivel source to C and then invokes a host C
+compiler to produce a native executable:
 
-## Rivel v1
+`Rivel -> generated C -> native executable`
 
-### Supported
+If you want the exact syntax and behavior, see [docs/grammar.md](docs/grammar.md).
 
-- top-level `const`
-- `fn` declarations
-- `fn main() -> Int` entrypoint
-- local `const` and `mut`
-- explicit function parameter and return types
-- optional local type annotations with inference
-- `Int` and `Bool`
-- `return`
-- `if` / `elif` / `else`
-- `while`
-- function calls
-- bare call statements
-- builtin `print(expr)` for `Int` and `Bool`
-- operators:
-  - arithmetic: `+ - * / %`
-  - comparison: `== != < <= > >=`
-  - logical: `and or not`
+## Quickstart
 
-## Example
+### Prerequisites
 
-```txt
-const BASE: Int = 40
+- `make`
+- a C11 compiler to build `rivel`
+- `clang` in your `PATH` for compiling generated C into the final executable
 
-fn add(a: Int, b: Int) -> Int {
-    return a + b
-}
+`make` builds the compiler itself. When you later run `./rivel program.rivel`,
+the compiler currently invokes `clang -std=c11` internally for the generated C.
 
-fn main() -> Int {
-    mut total = add(BASE, 1)
-    print(total)
-
-    if total == 41 and not false {
-        total = total + 1
-    }
-
-    return total
-}
-```
-
-## Building
-
-Requires a C11 compiler, `make`, and `clang` in your `PATH`.
+### Build the compiler
 
 ```bash
 make
 ```
 
-The executable is written to `./rivel`.
+That gives you `./rivel`.
 
-## Running
+### Try a small program
 
-The compiler still takes a single `.rivel` input file and can optionally rename the
-generated executable with `-o`.
+Create `hello.rivel`:
+
+```rivel
+const BASE: Int = 40
+
+fn add_one(x: Int) -> Int {
+    return x + 1
+}
+
+fn main() -> Int {
+    const result = add_one(BASE)
+    print(result)
+    return result
+}
+```
+
+Compile and run it:
 
 ```bash
-./rivel program.rivel
+./rivel hello.rivel
 ./out
 ```
 
-Custom output name:
+Expected behavior:
+
+- `./out` prints `41`
+- the process exits with status `41`
+
+If you want to keep the generated C around and give the output a better name:
 
 ```bash
-./rivel program.rivel -o hello
+./rivel hello.rivel -o hello --emit-c
 ./hello
+ls hello hello.c
 ```
 
-If you also want to keep the generated C, pass `--emit-c`:
+What those flags do:
 
-```bash
-./rivel program.rivel --emit-c
-```
+- default output name: `out`
+- `-o <name>` changes the executable name
+- without `--emit-c`, only the executable is kept
+- with `--emit-c`, `<output>.c` is kept next to the executable
 
-By default the compiler writes only:
+## What It Can Do Right Now
 
-- `<output>` for the final executable
+### Declarations and Types
 
-With `--emit-c`, it also writes:
+- top-level `const` declarations
+- function declarations with explicit parameter and return types
+- required entrypoint `fn main() -> Int`
+- local `const` and `mut` bindings
+- optional type annotations on local bindings with inference from the initializer
+- built-in types: `Int` and `Bool`
 
-- `<output>.c` for generated C
+### Statements and Control Flow
+
+- `return <expr>`
+- `if` / `elif` / `else`
+- `while`
+- assignments to `mut` bindings
+- function-call statements such as `print(x)` or `helper()`
+
+### Expressions
+
+- integer and boolean literals
+- identifier references
+- named function calls in expression position
+- grouped expressions with `(...)`
+- unary operators: `-`, `not`
+- arithmetic operators: `+`, `-`, `*`, `/`, `%`
+- comparison operators: `==`, `!=`, `<`, `<=`, `>`, `>=`
+- logical operators: `and`, `or`
+
+### Functions, Scope, and Runtime Behavior
+
+- forward calls and recursion
+- lexical block scope with shadowing in nested scopes
+- top-level constant evaluation
+- builtin `print(expr)` for `Int` and `Bool`
+- division and modulo by zero are checked at runtime and terminate with an error
+- `main`'s returned `Int` becomes the program's process exit code
+
+## What It Does Not Do
+
+The language is intentionally tiny. Some important limits:
+
+- one input file per compiler invocation
+- only `Int` and `Bool` exist today
+- no imports or modules
+- no strings, character literals, lists, or member access
+- no `for` loops
+- no top-level `mut`
+- `print(...)` is a statement-only builtin, not an expression
+- conditions for `if` and `while` must not be wrapped directly in outer parentheses
+- the generated C is currently compiled with `clang`, even if `make` used a different C compiler to build `rivel`
 
 ## Testing
+
+The main test path I actually trust right now is the end-to-end suite:
 
 ```bash
 bash tests/run_tests.sh
 ```
 
-Address/UB sanitizer build:
+That script rebuilds the compiler and checks:
 
-```bash
-make sanitize
+- successful compilation and execution
+- runtime error behavior
+- compile-time diagnostics
+- `--emit-c` artifact handling
+
+A separate unit-test script exists at `tests/run_unit_tests.sh`, but I would not
+treat it as the main documented workflow for this repo right now. The
+end-to-end suite above is the one to lean on.
+
+## If You Want To Poke Around The Compiler
+
+The compiler is laid out as a pretty direct staged pipeline:
+
+- `src/tokenizer.c`: lexical analysis and separator/comment handling
+- `src/parser*.c`: declarations, statements, and expression parsing
+- `src/semantic*.c`: name resolution, type checking, constant evaluation, and entrypoint validation
+- `src/backend_c*.c`: C code generation and runtime helpers
+- `src/driver.c` and `src/main.c`: file I/O, CLI handling, generated-C emission, and host compiler invocation
+
+## Command Line Summary
+
+The current CLI is:
+
+```txt
+rivel <input.rivel> [-o <output>] [--emit-c]
 ```
+
+Notes:
+
+- exactly one input file is accepted
+- `-o` renames the produced executable
+- `--emit-c` preserves the generated C file as `<output>.c`
