@@ -1,12 +1,8 @@
 # Rivel
 
-Rivel is a small statically typed, compiled, language with a tiny core.
-This repo is mostly a toy compiler project I made for fun to learn more about
-what it feels like to compile a language. 
+Rivel is a small statically typed, compiled, language. This repo is mostly a toy compiler project I made to learn more about compilers. As such, it is extremely experimental and not meant at all to be production level.
 
-It is very much an educational project that I quickly made to learn about comilers, not a serious production language. In fact, most of the features you expect to be in a programming language aren't implemented yet!
-
-The syntax of Rivel right now is a bit like if Python was static and compiled, and with braces instead of whitespace.
+In fact, most of the features you expect to be in a programming language aren't implemented yet!
 
 Right now the compiler simply compiles Rivel source code to C which then produces a native executable via gcc:
 
@@ -140,17 +136,3 @@ The compiler is laid out as a pretty direct staged pipeline:
 - `src/semantic*.c`: name resolution, type checking, constant evaluation, and entrypoint validation
 - `src/backend_c*.c`: C code generation and runtime helpers
 - `src/driver.c` and `src/main.c`: file I/O, CLI handling, generated-C emission, and host compiler invocation
-
-## Command Line Summary
-
-The current CLI is:
-
-```txt
-rivel <input.rivel> [-o <output>] [--emit-c]
-```
-
-Notes:
-
-- exactly one input file is accepted
-- `-o` renames the produced executable
-- `--emit-c` preserves the generated C file as `<output>.c`
