@@ -48,6 +48,10 @@ const char *token_name(TokenType type) {
             return "`else`";
         case TOKEN_KW_WHILE:
             return "`while`";
+        case TOKEN_KW_FOR:
+            return "`for`";
+        case TOKEN_KW_IN:
+            return "`in`";
         case TOKEN_KW_AND:
             return "`and`";
         case TOKEN_KW_OR:
@@ -70,6 +74,10 @@ const char *token_name(TokenType type) {
             return "`,`";
         case TOKEN_COLON:
             return "`:`";
+        case TOKEN_DOT_DOT:
+            return "`..`";
+        case TOKEN_DOT_DOT_EQ:
+            return "`..=`";
         case TOKEN_ARROW:
             return "`->`";
         case TOKEN_ASSIGN:

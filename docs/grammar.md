@@ -62,14 +62,14 @@ Keywords cannot be used where an identifier is expected.
 The current reserved keywords and built-in literals are:
 
 ```txt
-const  mut  fn  return  if  elif  else  while
+const  mut  fn  return  if  elif  else  while  for  in
 and  or  not
 Int  Bool
 true  false
 ```
 
 The lexer also rejects several legacy or unsupported words early, including
-`let`, `exit`, `import`, `from`, and `for`.
+`let`, `exit`, `import`, and `from`.
 
 ### Literals
 
@@ -146,12 +146,14 @@ Stmt        ::= BindingStmt
               | CallStmt
               | IfStmt
               | WhileStmt
+              | ForRangeStmt
 BindingStmt ::= ("const" | "mut") IDENT TypeAnn? "=" Expr Separator?
 AssignStmt  ::= IDENT "=" Expr Separator?
 ReturnStmt  ::= "return" Expr Separator?
 CallStmt    ::= IDENT "(" ArgList? ")" Separator?
 IfStmt      ::= "if" Expr Block ("elif" Expr Block)* ("else" Block)?
 WhileStmt   ::= "while" Expr Block
+ForRangeStmt ::= "for" IDENT "in" Expr (".." | "..=") Expr Block
 ```
 
 Notes:
@@ -233,6 +235,46 @@ fn main() -> Int {
 ```
 
 `while` conditions must also be `Bool`.
+
+### `for` ranges
+
+```rivel
+fn main() -> Int {
+    mut total = 0
+
+    for i in 1..=6 {
+        total = total + i
+    }
+
+    return total
+}
+```
+
+Rules:
+
+- `for` ranges iterate over `Int` values only
+- `..` uses an exclusive end bound
+- `..=` uses an inclusive end bound
+- the loop variable is a fresh immutable `Int` binding
+- range bounds are evaluated once before the loop starts
+- descending ranges are empty
+
+The `for` header introduces a scope around the body block. That means the
+bounds are resolved before the loop variable exists, and the body may shadow
+the loop variable with a nested binding:
+
+```rivel
+fn main() -> Int {
+    mut total = 0
+
+    for i in 0..3 {
+        const i = i + 10
+        total = total + i
+    }
+
+    return total
+}
+```
 
 ## Expressions
 
@@ -392,9 +434,9 @@ status `1`.
 The current implementation explicitly rejects these surface forms:
 
 - `import` and `from`
-- `for ... in ...`
 - string literals
 - character literals
 - list syntax
 - member access with `.`
 - top-level `mut`
+- generic iterables or standalone range values

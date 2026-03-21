@@ -1,6 +1,6 @@
 fn main() -> Int {
-    for n in items {
-        return n
+    for i in 0..3 {
+        i = i + 1
     }
 
     return 0

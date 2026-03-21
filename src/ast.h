@@ -84,7 +84,8 @@ typedef enum {
     STMT_RETURN,
     STMT_CALL,
     STMT_IF,
-    STMT_WHILE
+    STMT_WHILE,
+    STMT_FOR_RANGE
 } StmtKind;
 
 struct Param {
@@ -157,6 +158,13 @@ struct Stmt {
             Expr *condition;
             Block *body;
         } while_stmt;
+        struct {
+            StrSlice name;
+            Expr *start;
+            Expr *end;
+            bool is_inclusive;
+            Block *body;
+        } for_range;
     } as;
 };
 

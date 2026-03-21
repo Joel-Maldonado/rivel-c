@@ -29,7 +29,6 @@ static const UnsupportedIdentifier TOKENIZER_UNSUPPORTED_IDENTIFIERS[] = {
     {"exit", "Rivel v1 does not support legacy keyword `exit`"},
     {"import", "Rivel v1 does not support `import`"},
     {"from", "Rivel v1 does not support `from` imports"},
-    {"for", "Rivel v1 does not support `for ... in ...`"},
 };
 
 static const Keyword TOKENIZER_KEYWORDS[] = {
@@ -43,6 +42,8 @@ static const Keyword TOKENIZER_KEYWORDS[] = {
     {"elif", TOKEN_KW_ELIF},
     {"else", TOKEN_KW_ELSE},
     {"while", TOKEN_KW_WHILE},
+    {"for", TOKEN_KW_FOR},
+    {"in", TOKEN_KW_IN},
     {"and", TOKEN_KW_AND},
     {"or", TOKEN_KW_OR},
     {"not", TOKEN_KW_NOT},
@@ -359,7 +360,22 @@ bool tokenize_source(const char *source, Arena *arena, TokenList *out_tokens, Co
             case ']':
                 return error_set_at(error, "Lexer", line, column, "List syntax is not part of Rivel v1");
             case '.':
-                return error_set_at(error, "Lexer", line, column, "Member access is not part of Rivel v1");
+                tokenizer_advance(&tokenizer);
+                if (tokenizer_peek(&tokenizer, 0U) != '.') {
+                    return error_set_at(error, "Lexer", line, column, "Member access is not part of Rivel v1");
+                }
+                tokenizer_advance(&tokenizer);
+                if (tokenizer_peek(&tokenizer, 0U) == '=') {
+                    tokenizer_advance(&tokenizer);
+                    if (!tokenizer_add_token(&tokenizer, TOKEN_DOT_DOT_EQ, tokenizer.source + tokenizer.index - 3U, 3U, line, column)) {
+                        return false;
+                    }
+                    break;
+                }
+                if (!tokenizer_add_token(&tokenizer, TOKEN_DOT_DOT, tokenizer.source + tokenizer.index - 2U, 2U, line, column)) {
+                    return false;
+                }
+                break;
             default:
                 return error_set_at(error, "Lexer", line, column, "Unexpected character `%c`", current);
         }

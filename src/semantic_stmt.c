@@ -119,6 +119,38 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
         }
         return analyzer_analyze_block(analyzer, stmt->as.while_stmt.body, function_return_type);
     }
+    if (stmt->kind == STMT_FOR_RANGE) {
+        Type start_type;
+        Type end_type;
+        Type int_type;
+
+        if (!analyzer_analyze_expr(analyzer, stmt->as.for_range.start, &start_type)) {
+            return false;
+        }
+        if (start_type.kind != TYPE_INT) {
+            return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "For range start must be Int");
+        }
+        if (!analyzer_analyze_expr(analyzer, stmt->as.for_range.end, &end_type)) {
+            return false;
+        }
+        if (end_type.kind != TYPE_INT) {
+            return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "For range end must be Int");
+        }
+
+        int_type.kind = TYPE_INT;
+        if (!analyzer_push_scope(analyzer)) {
+            return false;
+        }
+        if (!analyzer_declare_local(analyzer, stmt->token, stmt->as.for_range.name, int_type, false)) {
+            analyzer_pop_scope(analyzer);
+            return false;
+        }
+        if (!analyzer_analyze_block(analyzer, stmt->as.for_range.body, function_return_type)) {
+            return false;
+        }
+        analyzer_pop_scope(analyzer);
+        return true;
+    }
 
     return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Unknown statement type");
 }

@@ -1,5 +1,12 @@
 #include "backend_c_internal.h"
 
+static char *backend_range_name(Backend *backend, const char *prefix) {
+    char *name = arena_printf(backend->arena, backend->error, "rivel_range_%s_%zu", prefix, backend->next_local_id);
+
+    backend->next_local_id += 1U;
+    return name;
+}
+
 char *backend_function_signature(Backend *backend, const Decl *decl) {
     StrBuf buf;
     size_t index = 0U;
@@ -168,6 +175,102 @@ bool backend_emit_stmt(Backend *backend, const Stmt *stmt) {
         if (!backend_emit_block(backend, stmt->as.while_stmt.body)) {
             return false;
         }
+        backend_indent_pop(backend);
+        return backend_emit_line(backend, "}");
+    }
+    if (stmt->kind == STMT_FOR_RANGE) {
+        Type int_type;
+        char *start_value = backend_emit_expr(backend, stmt->as.for_range.start);
+        char *end_value = backend_emit_expr(backend, stmt->as.for_range.end);
+        char *start_name = backend_range_name(backend, "start");
+        char *end_name = backend_range_name(backend, "end");
+        char *loop_name = backend_local_name(backend, stmt->as.for_range.name);
+
+        int_type.kind = TYPE_INT;
+        if (start_value == NULL || end_value == NULL || start_name == NULL || end_name == NULL || loop_name == NULL) {
+            return false;
+        }
+        if (!backend_emit_line(backend, "{")) {
+            return false;
+        }
+        backend_indent_push(backend);
+        if (!backend_push_scope(backend)) {
+            return false;
+        }
+        if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "int64_t %s = %s;", start_name, start_value))) {
+            return false;
+        }
+        if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "int64_t %s = %s;", end_name, end_value))) {
+            return false;
+        }
+        if (!backend_add_local(backend, stmt->as.for_range.name, loop_name, int_type)) {
+            return false;
+        }
+        if (stmt->as.for_range.is_inclusive) {
+            if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "if (%s <= %s) {", start_name, end_name))) {
+                return false;
+            }
+            backend_indent_push(backend);
+            if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "int64_t %s = %s;", loop_name, start_name))) {
+                return false;
+            }
+            if (!backend_emit_line(backend, "while (true) {")) {
+                return false;
+            }
+            backend_indent_push(backend);
+            if (!backend_emit_block(backend, stmt->as.for_range.body)) {
+                return false;
+            }
+            if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "if (%s == %s) {", loop_name, end_name))) {
+                return false;
+            }
+            backend_indent_push(backend);
+            if (!backend_emit_line(backend, "break;")) {
+                return false;
+            }
+            backend_indent_pop(backend);
+            if (!backend_emit_line(backend, "}")) {
+                return false;
+            }
+            if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s += INT64_C(1);", loop_name))) {
+                return false;
+            }
+            backend_indent_pop(backend);
+            if (!backend_emit_line(backend, "}")) {
+                return false;
+            }
+            backend_indent_pop(backend);
+            if (!backend_emit_line(backend, "}")) {
+                return false;
+            }
+        } else {
+            if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "if (%s < %s) {", start_name, end_name))) {
+                return false;
+            }
+            backend_indent_push(backend);
+            if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "int64_t %s = %s;", loop_name, start_name))) {
+                return false;
+            }
+            if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "while (%s < %s) {", loop_name, end_name))) {
+                return false;
+            }
+            backend_indent_push(backend);
+            if (!backend_emit_block(backend, stmt->as.for_range.body)) {
+                return false;
+            }
+            if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s += INT64_C(1);", loop_name))) {
+                return false;
+            }
+            backend_indent_pop(backend);
+            if (!backend_emit_line(backend, "}")) {
+                return false;
+            }
+            backend_indent_pop(backend);
+            if (!backend_emit_line(backend, "}")) {
+                return false;
+            }
+        }
+        backend_pop_scope(backend);
         backend_indent_pop(backend);
         return backend_emit_line(backend, "}");
     }

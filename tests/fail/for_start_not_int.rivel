@@ -1,0 +1,7 @@
+fn main() -> Int {
+    for i in false..3 {
+        return i
+    }
+
+    return 0
+}

@@ -235,6 +235,10 @@ run_success_test "unary_and_mod"       "$SCRIPT_DIR/pass_unary_and_mod.rivel"   
 run_success_test "logic"               "$SCRIPT_DIR/pass_logic_and_comparisons.rivel" 42
 run_success_test "if_chain"            "$SCRIPT_DIR/pass_if_chain.rivel"             42
 run_success_test "while_loop"          "$SCRIPT_DIR/pass_while.rivel"                21
+run_success_test "for_range_exclusive" "$SCRIPT_DIR/pass_for_range_exclusive.rivel"  21
+run_success_test "for_range_inclusive" "$SCRIPT_DIR/pass_for_range_inclusive.rivel"  21
+run_success_test "for_shadowing"       "$SCRIPT_DIR/pass_for_shadowing.rivel"        33
+run_success_test "for_capture_once"    "$SCRIPT_DIR/pass_for_capture_once.rivel"     6
 run_success_test "forward_call"        "$SCRIPT_DIR/pass_forward_call.rivel"         42
 run_success_test "recursion"           "$SCRIPT_DIR/pass_recursion.rivel"            120
 run_success_test "globals"             "$SCRIPT_DIR/pass_globals.rivel"              42
@@ -267,7 +271,10 @@ run_compile_fail_test "reserved_print"       "$SCRIPT_DIR/fail/redefine_print.ri
 run_compile_fail_test "unsupported_import"   "$SCRIPT_DIR/fail/unsupported_import.rivel"     "Rivel v1 does not support \`import\`"
 run_compile_fail_test "unsupported_string"   "$SCRIPT_DIR/fail/unsupported_string.rivel"     "String literals are not part of Rivel v1"
 run_compile_fail_test "unsupported_list"     "$SCRIPT_DIR/fail/unsupported_list.rivel"       "List syntax is not part of Rivel v1"
-run_compile_fail_test "unsupported_for"      "$SCRIPT_DIR/fail/unsupported_for.rivel"        "Rivel v1 does not support \`for ... in ...\`"
+run_compile_fail_test "for_start_not_int"    "$SCRIPT_DIR/fail/for_start_not_int.rivel"      "For range start must be Int"
+run_compile_fail_test "for_end_not_int"      "$SCRIPT_DIR/fail/for_end_not_int.rivel"        "For range end must be Int"
+run_compile_fail_test "assign_loop_var"      "$SCRIPT_DIR/fail/assign_loop_var.rivel"        "Cannot assign to immutable binding \`i\`"
+run_compile_fail_test "for_missing_range"    "$SCRIPT_DIR/fail/for_missing_range.rivel"      "Expected \`..\` or \`..=\` in \`for\` range"
 run_compile_fail_test "unsupported_member"   "$SCRIPT_DIR/fail/unsupported_member_access.rivel" "Member access is not part of Rivel v1"
 
 echo ""

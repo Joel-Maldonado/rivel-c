@@ -187,6 +187,53 @@ static bool parser_parse_while_stmt(Parser *parser, Stmt **out_stmt) {
     return true;
 }
 
+static bool parser_parse_for_range_stmt(Parser *parser, Stmt **out_stmt) {
+    const Token *for_token;
+    const Token *name_token;
+    Stmt *stmt = parser_new_stmt(parser, STMT_FOR_RANGE);
+
+    if (stmt == NULL) {
+        return false;
+    }
+    if (!parser_expect(parser, TOKEN_KW_FOR, "Expected `for`", &for_token)) {
+        return false;
+    }
+    if (!parser_expect(parser, TOKEN_IDENTIFIER, "Expected a loop variable name", &name_token)) {
+        return false;
+    }
+    if (!parser_expect(parser, TOKEN_KW_IN, "Expected `in` in `for` range", NULL)) {
+        return false;
+    }
+
+    stmt->token = *for_token;
+    stmt->as.for_range.name = name_token->lexeme;
+
+    if (!parser_parse_expression(parser, &stmt->as.for_range.start)) {
+        return false;
+    }
+    if (parser_match(parser, TOKEN_DOT_DOT)) {
+        stmt->as.for_range.is_inclusive = false;
+    } else if (parser_match(parser, TOKEN_DOT_DOT_EQ)) {
+        stmt->as.for_range.is_inclusive = true;
+    } else {
+        return error_set_at(
+            parser->error,
+            "Parse",
+            parser_peek(parser, 0U)->line,
+            parser_peek(parser, 0U)->column,
+            "Expected `..` or `..=` in `for` range");
+    }
+    if (!parser_parse_expression(parser, &stmt->as.for_range.end)) {
+        return false;
+    }
+    if (!parser_parse_block(parser, &stmt->as.for_range.body)) {
+        return false;
+    }
+
+    *out_stmt = stmt;
+    return true;
+}
+
 bool parser_parse_block(Parser *parser, Block **out_block) {
     const Token *token;
     Block *block = parser_new_block(parser);
@@ -237,6 +284,9 @@ bool parser_parse_statement(Parser *parser, Stmt **out_stmt) {
     }
     if (parser_is(parser, TOKEN_KW_WHILE, 0U)) {
         return parser_parse_while_stmt(parser, out_stmt);
+    }
+    if (parser_is(parser, TOKEN_KW_FOR, 0U)) {
+        return parser_parse_for_range_stmt(parser, out_stmt);
     }
     if (parser_is(parser, TOKEN_IDENTIFIER, 0U) && parser_is(parser, TOKEN_ASSIGN, 1U)) {
         return parser_parse_assign_stmt(parser, out_stmt);

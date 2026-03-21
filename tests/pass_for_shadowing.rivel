@@ -1,0 +1,10 @@
+fn main() -> Int {
+    mut total = 0
+
+    for i in 0..3 {
+        const i = i + 10
+        total = total + i
+    }
+
+    return total
+}

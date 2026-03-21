@@ -83,6 +83,7 @@ Flags:
 - `return <expr>`
 - `if` / `elif` / `else`
 - `while`
+- `for i in start..end` and `for i in start..=end` over `Int` ranges
 - assignments to `mut` bindings
 - function-call statements such as `print(x)` or `helper()`
 
@@ -114,7 +115,7 @@ The language is tiny and not developed yet. Some important limits:
 - only `Int` and `Bool` exist today
 - no imports or modules
 - no strings, character literals, lists, or member access
-- no `for` loops
+- no generic iterables, range values, or stepped/reverse `for` loops
 - no top-level `mut`
 - `print(...)` is a statement-only builtin, not an expression
 - conditions for `if` and `while` must not be wrapped directly in outer parentheses

@@ -1,0 +1,7 @@
+fn main() -> Int {
+    for i in 0 {
+        return i
+    }
+
+    return 0
+}

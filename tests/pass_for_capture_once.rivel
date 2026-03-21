@@ -1,0 +1,11 @@
+fn main() -> Int {
+    mut limit = 4
+    mut total = 0
+
+    for i in 0..limit {
+        limit = 0
+        total = total + i
+    }
+
+    return total
+}

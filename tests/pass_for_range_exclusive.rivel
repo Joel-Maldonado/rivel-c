@@ -1,0 +1,9 @@
+fn main() -> Int {
+    mut total = 0
+
+    for i in 0..7 {
+        total = total + i
+    }
+
+    return total
+}
