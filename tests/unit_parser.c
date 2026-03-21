@@ -248,6 +248,76 @@ static void test_parse_rejects_invalid_string_escape(void) {
         "Unsupported escape sequence");
 }
 
+static void test_parse_struct_decl_literal_access_and_assignment(void) {
+    Arena arena;
+    Program program;
+    Decl *struct_decl;
+    const StructFieldDecl *name_field;
+    Decl *main_decl;
+    Stmt *binding_stmt;
+    Expr *literal_expr;
+    const StructLiteralField *literal_name_field;
+    Stmt *assign_stmt;
+    Expr *assign_target;
+    Stmt *return_stmt;
+    Expr *return_expr;
+
+    arena_init(&arena, 4096U);
+    program = parse_source(
+        "struct Person {\n"
+        "    name: String\n"
+        "    age: Int\n"
+        "}\n"
+        "fn main() -> Int {\n"
+        "    mut person: Person = Person { name: \"John\", age: 23 }\n"
+        "    person.age = 24\n"
+        "    return person.age\n"
+        "}\n",
+        &arena);
+
+    assert(decl_list_len(&program.decls) == 2U);
+
+    struct_decl = decl_list_get(&program.decls, 0U);
+    assert(struct_decl->kind == DECL_STRUCT);
+    assert(slice_equal_cstr(struct_decl->name, "Person"));
+    assert(struct_field_decl_list_len(&struct_decl->as.struct_decl.fields) == 2U);
+
+    name_field = struct_field_decl_list_get_const(&struct_decl->as.struct_decl.fields, 0U);
+    assert(slice_equal_cstr(name_field->name, "name"));
+    assert(name_field->type.kind == TYPE_STRING);
+
+    main_decl = decl_list_get(&program.decls, 1U);
+    binding_stmt = stmt_list_get(&main_decl->as.function.body->statements, 0U);
+    assert(binding_stmt->kind == STMT_BINDING);
+    assert(binding_stmt->as.binding.has_annotation);
+    assert(binding_stmt->as.binding.annotation.kind == TYPE_STRUCT);
+    assert(slice_equal_cstr(binding_stmt->as.binding.annotation.struct_name, "Person"));
+
+    literal_expr = binding_stmt->as.binding.initializer;
+    assert(literal_expr->kind == EXPR_STRUCT_LITERAL);
+    assert(slice_equal_cstr(literal_expr->as.struct_literal.struct_name, "Person"));
+    assert(struct_literal_field_list_len(&literal_expr->as.struct_literal.fields) == 2U);
+
+    literal_name_field = struct_literal_field_list_get_const(&literal_expr->as.struct_literal.fields, 0U);
+    assert(slice_equal_cstr(literal_name_field->name, "name"));
+    assert(literal_name_field->value->kind == EXPR_STRING);
+
+    assign_stmt = stmt_list_get(&main_decl->as.function.body->statements, 1U);
+    assert(assign_stmt->kind == STMT_ASSIGN);
+    assign_target = assign_stmt->as.assign.target;
+    assert(assign_target->kind == EXPR_FIELD);
+    assert(assign_target->as.field.base->kind == EXPR_NAME);
+    assert(slice_equal_cstr(assign_target->as.field.base->as.name, "person"));
+    assert(slice_equal_cstr(assign_target->as.field.name, "age"));
+
+    return_stmt = stmt_list_get(&main_decl->as.function.body->statements, 2U);
+    return_expr = return_stmt->as.ret.value;
+    assert(return_expr->kind == EXPR_FIELD);
+    assert(slice_equal_cstr(return_expr->as.field.name, "age"));
+
+    arena_free(&arena);
+}
+
 int main(void) {
     test_parse_nested_call_arguments();
     test_parse_statement_separators_across_blank_lines();
@@ -256,5 +326,6 @@ int main(void) {
     test_parse_string_type_and_literal();
     test_parse_string_literal_escapes();
     test_parse_rejects_invalid_string_escape();
+    test_parse_struct_decl_literal_access_and_assignment();
     return 0;
 }

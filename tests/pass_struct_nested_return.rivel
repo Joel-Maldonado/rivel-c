@@ -1,0 +1,16 @@
+struct Person {
+    age: Int
+}
+
+struct Wrapper {
+    person: Person
+}
+
+fn keep(wrapper: Wrapper) -> Wrapper {
+    return wrapper
+}
+
+fn main() -> Int {
+    const wrapper = Wrapper { person: Person { age: 42 } }
+    return keep(wrapper).person.age
+}

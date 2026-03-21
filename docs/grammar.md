@@ -68,6 +68,7 @@ The current reserved keywords and built-in literals are:
 
 ```txt
 const  mut  fn  return  if  elif  else  while  for  in
+struct
 and  or  not
 Int  Double  Bool  String
 true  false
@@ -94,17 +95,19 @@ Character literals and list literals are not part of v1.
 
 ## Top-Level Structure
 
-Only two declaration forms exist at the top level: `const` and `fn`.
+Top-level declarations may define constants, structs, and functions.
 
 ```txt
 Program         ::= Separator* TopLevelDecl (Separator+ TopLevelDecl)* Separator* EOF
-TopLevelDecl    ::= GlobalConstDecl | FunctionDecl
+TopLevelDecl    ::= GlobalConstDecl | StructDecl | FunctionDecl
 GlobalConstDecl ::= "const" IDENT TypeAnn? "=" Expr
+StructDecl      ::= "struct" IDENT "{" Separator* StructFieldDecl (Separator+ StructFieldDecl)* Separator* "}"
+StructFieldDecl ::= IDENT ":" Type
 FunctionDecl    ::= "fn" IDENT "(" ParamList? ")" "->" Type Block
 ParamList       ::= Param ("," Param)*
 Param           ::= IDENT ":" Type
 TypeAnn         ::= ":" Type
-Type            ::= "Int" | "Double" | "Bool" | "String"
+Type            ::= "Int" | "Double" | "Bool" | "String" | IDENT
 Separator       ::= NEWLINE | ";"
 ```
 
@@ -114,6 +117,7 @@ Notes:
 - top-level declarations must be separated by at least one newline or `;`
 - function parameter types and function return types are always required
 - top-level constant annotations are optional
+- struct field types may use builtins and previously declared structs
 
 Example:
 
@@ -132,12 +136,13 @@ fn main() -> Int {
 
 ## Types
 
-Right now, Rivel has exactly four types:
+Right now, Rivel has four built-in types plus nominal struct types:
 
 - `Int`
 - `Double`
 - `Bool`
 - `String`
+- any top-level `struct` name
 
 Type annotations may appear on:
 
@@ -150,6 +155,24 @@ annotation and inherit the initializer's type.
 
 `String` values are immutable UTF-8 byte sequences. `len` and `substr` count
 bytes, not Unicode scalar values.
+
+### Structs
+
+Structs are nominal record types with named fields.
+
+```rivel
+struct Person {
+    name: String
+    age: Int
+}
+```
+
+Rules:
+
+- structs may only be declared at the top level
+- field names must be unique within a struct
+- fields may use built-in types or previously declared structs
+- recursive/self-referential structs are rejected in v1
 
 ## Blocks and Statements
 
@@ -165,7 +188,7 @@ Stmt        ::= BindingStmt
               | WhileStmt
               | ForRangeStmt
 BindingStmt ::= ("const" | "mut") IDENT TypeAnn? "=" Expr Separator?
-AssignStmt  ::= IDENT "=" Expr Separator?
+AssignStmt  ::= (IDENT | PostfixExpr "." IDENT) "=" Expr Separator?
 ReturnStmt  ::= "return" Expr Separator?
 CallStmt    ::= IDENT "(" ArgList? ")" Separator?
 IfStmt      ::= "if" Expr Block ("elif" Expr Block)* ("else" Block)?
@@ -176,7 +199,7 @@ ForRangeStmt ::= "for" IDENT "in" Expr (".." | "..=") Expr Block
 Notes:
 
 - `return` always requires a value
-- assignment targets must be simple names
+- assignment targets may be simple names or struct fields
 - only named function calls can be used as statements
 - empty blocks are allowed
 
@@ -196,6 +219,7 @@ Rules:
 - `const` creates an immutable local binding
 - `mut` creates a mutable local binding
 - assignment to a `const` binding is rejected
+- field assignment is only allowed through mutable local struct bindings
 - same-scope redefinition is rejected
 - nested scopes may shadow outer bindings
 
@@ -305,7 +329,8 @@ highest:
 5. `+`, `-`
 6. `*`, `/`, `%`
 7. unary `not`, unary `-`
-8. named function calls and primary expressions
+8. postfix field access and named function calls
+9. primary expressions
 
 All binary operators are left-associative.
 
@@ -320,9 +345,12 @@ ComparisonExpr  ::= AddExpr (("<" | "<=" | ">" | ">=") AddExpr)*
 AddExpr         ::= MulExpr (("+" | "-") MulExpr)*
 MulExpr         ::= UnaryExpr (("*" | "/" | "%") UnaryExpr)*
 UnaryExpr       ::= ("not" | "-") UnaryExpr | CallExpr
-CallExpr        ::= IDENT "(" ArgList? ")" | Primary
+CallExpr        ::= PostfixExpr
+PostfixExpr     ::= Primary ( "(" ArgList? ")" | "." IDENT )*
 ArgList         ::= Expr ("," Expr)*
-Primary         ::= INT_LIT | DOUBLE_LIT | BOOL_LIT | STRING_LIT | IDENT | "(" Expr ")"
+Primary         ::= INT_LIT | DOUBLE_LIT | BOOL_LIT | STRING_LIT | IDENT | StructLiteral | "(" Expr ")"
+StructLiteral   ::= IDENT "{" Separator* StructLiteralField (("," | Separator)+ StructLiteralField)* ("," | Separator)* "}"
+StructLiteralField ::= IDENT ":" Expr
 ```
 
 ### Calls
@@ -341,6 +369,27 @@ fn add_one(x: Int) -> Int {
 
 The current language only allows calling a named function directly. You cannot
 call the result of another expression.
+
+### Struct Literals and Field Access
+
+Struct literals use Rust-style brace syntax:
+
+```rivel
+const person = Person { name: "John", age: 23 }
+```
+
+Field reads use `.`:
+
+```rivel
+return person.age
+```
+
+Rules:
+
+- struct literals must initialize every field exactly once
+- unknown, duplicate, or missing fields are rejected
+- field access requires a struct value
+- struct equality is not supported in v1
 
 ### Builtins
 
@@ -426,6 +475,7 @@ At runtime, the returned `Int` becomes the process exit code.
 - `%` requires `Int` operands and produces `Int`
 - comparison operators accept numeric operands and produce `Bool`
 - equality operators accept matching operand types, and also allow mixed `Int`/`Double` comparisons, producing `Bool`
+- equality operators do not support struct operands
 - `and` and `or` require `Bool` operands and produce `Bool`
 - unary `-` accepts `Int` or `Double`
 - `not` requires `Bool`
@@ -461,6 +511,8 @@ Allowed ingredients:
 
 Rejected in top-level constant initializers:
 
+- struct literals
+- field access
 - references to locals
 - non-builtin function calls
 - builtin `print`
@@ -483,6 +535,7 @@ The generated program includes runtime helpers for:
 - printing `String`
 - checking division by zero for `/` and `%`
 - checking substring bounds for `substr`
+- retaining and releasing nested strings stored inside struct values
 
 Division or modulo by zero prints `division by zero` to `stderr` and exits with
 status `1`.
@@ -500,8 +553,11 @@ The current implementation explicitly rejects these surface forms:
 - `import` and `from`
 - character literals
 - list syntax
-- member access with `.`
 - string indexing
 - top-level `mut`
+- methods or member calls on struct values
+- struct equality
+- top-level `const` struct values
+- recursive/self-referential structs
 - generic iterables or standalone range values
 - stepped or reverse `for` loops

@@ -7,6 +7,28 @@ static char *backend_range_name(Backend *backend, const char *prefix) {
     return name;
 }
 
+static bool backend_emit_assignment_store(Backend *backend, Type target_type, const char *target_name, const char *value) {
+    if (target_type.kind == TYPE_STRING || backend_type_contains_owned_strings(backend, target_type)) {
+        char *temp_name = backend_temp_name(backend, "assign_value");
+
+        if (temp_name == NULL) {
+            return false;
+        }
+        if (!backend_emit_line(backend,
+                               arena_printf(backend->arena,
+                                            backend->error,
+                                            "%s %s = %s;",
+                                            backend_c_type(backend, target_type),
+                                            temp_name,
+                                            value))
+            || !backend_emit_release_value(backend, target_type, target_name)) {
+            return false;
+        }
+        return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s = %s;", target_name, temp_name));
+    }
+    return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s = %s;", target_name, value));
+}
+
 static bool backend_emit_return_stmt(Backend *backend, const Expr *value_expr) {
     Type value_type;
     char *value;
@@ -20,7 +42,7 @@ static bool backend_emit_return_stmt(Backend *backend, const Expr *value_expr) {
     if (value == NULL || temp_name == NULL) {
         return false;
     }
-    if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s %s = %s;", backend_c_type(value_type), temp_name, value))) {
+    if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s %s = %s;", backend_c_type(backend, value_type), temp_name, value))) {
         return false;
     }
     if (!backend_emit_all_scope_releases(backend)) {
@@ -35,7 +57,7 @@ char *backend_function_signature(Backend *backend, const Decl *decl) {
     char *copy;
 
     strbuf_init(&buf);
-    if (!strbuf_append_fmt(&buf, backend->error, "static %s %s(", backend_c_type(decl->as.function.return_type), backend_function_name(backend, decl->name))) {
+    if (!strbuf_append_fmt(&buf, backend->error, "static %s %s(", backend_c_type(backend, decl->as.function.return_type), backend_function_name(backend, decl->name))) {
         strbuf_free(&buf);
         return NULL;
     }
@@ -52,7 +74,7 @@ char *backend_function_signature(Backend *backend, const Decl *decl) {
                 strbuf_free(&buf);
                 return NULL;
             }
-            if (!strbuf_append_fmt(&buf, backend->error, "%s %s", backend_c_type(param->type), backend_param_name(backend, param->name))) {
+            if (!strbuf_append_fmt(&buf, backend->error, "%s %s", backend_c_type(backend, param->type), backend_param_name(backend, param->name))) {
                 strbuf_free(&buf);
                 return NULL;
             }
@@ -104,8 +126,8 @@ bool backend_emit_call_stmt(Backend *backend, const Expr *call_expr) {
     if (value == NULL) {
         return false;
     }
-    if (call_type.kind == TYPE_STRING) {
-        return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_string_release(%s);", value));
+    if (call_type.kind == TYPE_STRING || backend_type_contains_owned_strings(backend, call_type)) {
+        return backend_emit_release_value(backend, call_type, value);
     }
     return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s;", value));
 }
@@ -144,35 +166,64 @@ bool backend_emit_stmt(Backend *backend, const Stmt *stmt) {
         if (c_name == NULL || value == NULL) {
             return false;
         }
-        if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s %s = %s;", backend_c_type(type), c_name, value))) {
+        if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s %s = %s;", backend_c_type(backend, type), c_name, value))) {
             return false;
         }
         return backend_add_local(backend, stmt->as.binding.name, c_name, type);
     }
     if (stmt->kind == STMT_ASSIGN) {
-        const LocalBinding *binding = backend_resolve_local(backend, stmt->as.assign.name);
-        char *name = backend_resolve_name(backend, stmt->as.assign.name);
+        const LocalBinding *binding;
         char *value = backend_emit_expr(backend, stmt->as.assign.value);
+        Type target_type;
 
-        if (binding == NULL) {
-            return error_set(backend->error, "Backend", "Internal error: unresolved assignment target `%.*s` during C emission", (int)stmt->as.assign.name.len, stmt->as.assign.name.data);
-        }
-        if (name == NULL || value == NULL) {
+        if (!backend_expr_type_checked(backend, stmt->as.assign.target, &target_type)) {
             return false;
         }
-        if (binding->type.kind == TYPE_STRING) {
-            char *temp_name = backend_temp_name(backend, "assign_value");
 
-            if (temp_name == NULL) {
+        if (stmt->as.assign.target->kind == EXPR_NAME) {
+            StrSlice target_name = stmt->as.assign.target->as.name;
+            char *name = backend_resolve_name(backend, target_name);
+
+            binding = backend_resolve_local(backend, target_name);
+            if (binding == NULL) {
+                return error_set(backend->error, "Backend", "Internal error: unresolved assignment target `%.*s` during C emission", (int)target_name.len, target_name.data);
+            }
+            if (name == NULL || value == NULL) {
                 return false;
             }
-            if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "RivelString %s = %s;", temp_name, value))
-                || !backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_string_release(%s);", name))) {
-                return false;
-            }
-            return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s = %s;", name, temp_name));
+            return backend_emit_assignment_store(backend, target_type, name, value);
         }
-        return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s = %s;", name, value));
+
+        if (stmt->as.assign.target->kind == EXPR_FIELD) {
+            const Expr *base_expr = stmt->as.assign.target->as.field.base;
+            char *base_name;
+            char *field_lvalue;
+            const StructFieldDecl *field_decl;
+
+            if (base_expr->kind != EXPR_NAME) {
+                return error_set(backend->error, "Backend", "Internal error: field assignment base must be a local name");
+            }
+            binding = backend_resolve_local(backend, base_expr->as.name);
+            base_name = backend_resolve_name(backend, base_expr->as.name);
+            if (binding == NULL) {
+                return error_set(backend->error, "Backend", "Internal error: unresolved field assignment base `%.*s` during C emission", (int)base_expr->as.name.len, base_expr->as.name.data);
+            }
+            field_decl = backend_lookup_struct_field(backend, binding->type.struct_name, stmt->as.assign.target->as.field.name);
+            if (field_decl == NULL) {
+                return false;
+            }
+            field_lvalue = arena_printf(backend->arena,
+                                        backend->error,
+                                        "%s.%.*s",
+                                        base_name,
+                                        (int)field_decl->name.len,
+                                        field_decl->name.data);
+            if (base_name == NULL || field_lvalue == NULL || value == NULL) {
+                return false;
+            }
+            return backend_emit_assignment_store(backend, target_type, field_lvalue, value);
+        }
+        return error_set(backend->error, "Backend", "Internal error: unsupported assignment target during C emission");
     }
     if (stmt->kind == STMT_RETURN) {
         return backend_emit_return_stmt(backend, stmt->as.ret.value);

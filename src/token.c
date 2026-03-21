@@ -42,6 +42,8 @@ const char *token_name(TokenType type) {
             return "`mut`";
         case TOKEN_KW_FN:
             return "`fn`";
+        case TOKEN_KW_STRUCT:
+            return "`struct`";
         case TOKEN_KW_RETURN:
             return "`return`";
         case TOKEN_KW_IF:
@@ -82,6 +84,8 @@ const char *token_name(TokenType type) {
             return "`,`";
         case TOKEN_COLON:
             return "`:`";
+        case TOKEN_DOT:
+            return "`.`";
         case TOKEN_DOT_DOT:
             return "`..`";
         case TOKEN_DOT_DOT_EQ:

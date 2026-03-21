@@ -25,6 +25,32 @@ static SemanticResult *analyze_source(const char *source, Arena *arena, Program 
     return result;
 }
 
+static void expect_analysis_failure(const char *source, const char *expected_message) {
+    Arena arena;
+    CompileError error;
+    TokenList tokens;
+    Program program;
+    SemanticResult *result;
+
+    arena_init(&arena, 4096U);
+    error_init(&error);
+    token_list_init(&tokens, &arena);
+    decl_list_init(&program.decls, &arena);
+
+    assert(tokenize_source(source, &arena, &tokens, &error));
+    assert(parse_program(&tokens, &arena, &program, &error));
+
+    result = semantic_result_create(&arena, &error);
+    assert(result != NULL);
+    assert(!semantic_analyze(&program, result, &error));
+    assert(error.message != NULL);
+    assert(strstr(error.message, expected_message) != NULL);
+
+    semantic_result_dispose(result);
+    error_free(&error);
+    arena_free(&arena);
+}
+
 static void test_semantic_result_tracks_expr_types(void) {
     Arena arena;
     CompileError error;
@@ -220,10 +246,79 @@ static void test_semantic_result_tracks_string_values_and_builtin_types(void) {
     arena_free(&arena);
 }
 
+static void test_semantic_result_tracks_struct_types_and_field_access(void) {
+    Arena arena;
+    CompileError error;
+    Program program;
+    SemanticResult *result;
+    Decl *main_decl;
+    Stmt *binding_stmt;
+    Stmt *return_stmt;
+    Type expr_type;
+
+    arena_init(&arena, 4096U);
+    error_init(&error);
+
+    result = analyze_source(
+        "struct Person {\n"
+        "    name: String\n"
+        "    age: Int\n"
+        "}\n"
+        "fn main() -> Int {\n"
+        "    mut person: Person = Person { name: \"John\", age: 23 }\n"
+        "    person.age = 24\n"
+        "    return person.age\n"
+        "}\n",
+        &arena,
+        &program,
+        &error);
+
+    main_decl = decl_list_get(&program.decls, 1U);
+    binding_stmt = stmt_list_get(&main_decl->as.function.body->statements, 0U);
+    return_stmt = stmt_list_get(&main_decl->as.function.body->statements, 2U);
+
+    assert(semantic_expr_type(result, binding_stmt->as.binding.initializer, &expr_type));
+    assert(expr_type.kind == TYPE_STRUCT);
+    assert(slice_equal_cstr(expr_type.struct_name, "Person"));
+
+    assert(semantic_expr_type(result, return_stmt->as.ret.value, &expr_type));
+    assert(expr_type.kind == TYPE_INT);
+
+    semantic_result_dispose(result);
+    error_free(&error);
+    arena_free(&arena);
+}
+
+static void test_semantic_rejects_struct_literal_in_top_level_const(void) {
+    expect_analysis_failure(
+        "struct Person {\n"
+        "    age: Int\n"
+        "}\n"
+        "const DEFAULT_PERSON: Person = Person { age: 1 }\n"
+        "fn main() -> Int {\n"
+        "    return 0\n"
+        "}\n",
+        "Struct literals are not allowed in top-level constants");
+}
+
+static void test_semantic_rejects_recursive_structs(void) {
+    expect_analysis_failure(
+        "struct Person {\n"
+        "    friend: Person\n"
+        "}\n"
+        "fn main() -> Int {\n"
+        "    return 0\n"
+        "}\n",
+        "Recursive struct definitions are not supported");
+}
+
 int main(void) {
     test_semantic_result_tracks_expr_types();
     test_semantic_result_tracks_const_values_and_shadowing();
     test_semantic_result_tracks_double_widening();
     test_semantic_result_tracks_string_values_and_builtin_types();
+    test_semantic_result_tracks_struct_types_and_field_access();
+    test_semantic_rejects_struct_literal_in_top_level_const();
+    test_semantic_rejects_recursive_structs();
     return 0;
 }

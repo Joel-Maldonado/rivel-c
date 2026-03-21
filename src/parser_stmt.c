@@ -37,18 +37,36 @@ static bool parser_parse_binding_stmt(Parser *parser, Stmt **out_stmt) {
     return true;
 }
 
+static bool parser_statement_starts_assignment(const Parser *parser) {
+    size_t offset = 0U;
+
+    if (!parser_is(parser, TOKEN_IDENTIFIER, offset)) {
+        return false;
+    }
+    offset += 1U;
+    while (parser_is(parser, TOKEN_DOT, offset) && parser_is(parser, TOKEN_IDENTIFIER, offset + 1U)) {
+        offset += 2U;
+    }
+    return parser_is(parser, TOKEN_ASSIGN, offset);
+}
+
 static bool parser_parse_assign_stmt(Parser *parser, Stmt **out_stmt) {
-    const Token *name_token;
     Stmt *stmt = parser_new_stmt(parser, STMT_ASSIGN);
 
     if (stmt == NULL) {
         return false;
     }
-    if (!parser_expect(parser, TOKEN_IDENTIFIER, "Expected a binding name", &name_token)) {
+    if (!parser_parse_expression(parser, &stmt->as.assign.target)) {
         return false;
     }
-    stmt->token = *name_token;
-    stmt->as.assign.name = name_token->lexeme;
+    stmt->token = stmt->as.assign.target->token;
+    if (stmt->as.assign.target->kind != EXPR_NAME && stmt->as.assign.target->kind != EXPR_FIELD) {
+        return error_set_at(parser->error,
+                            "Parse",
+                            stmt->as.assign.target->token.line,
+                            stmt->as.assign.target->token.column,
+                            "Assignment target must be a binding name or field access");
+    }
 
     if (!parser_expect(parser, TOKEN_ASSIGN, "Expected `=` in assignment", NULL)) {
         return false;
@@ -288,7 +306,7 @@ bool parser_parse_statement(Parser *parser, Stmt **out_stmt) {
     if (parser_is(parser, TOKEN_KW_FOR, 0U)) {
         return parser_parse_for_range_stmt(parser, out_stmt);
     }
-    if (parser_is(parser, TOKEN_IDENTIFIER, 0U) && parser_is(parser, TOKEN_ASSIGN, 1U)) {
+    if (parser_statement_starts_assignment(parser)) {
         return parser_parse_assign_stmt(parser, out_stmt);
     }
     if (parser_is(parser, TOKEN_IDENTIFIER, 0U) && parser_is(parser, TOKEN_OPEN_PAREN, 1U)) {

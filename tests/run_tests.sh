@@ -251,6 +251,8 @@ run_stdout_test  "print_bool"          "$SCRIPT_DIR/pass_print_bool.rivel"      
 run_stdout_test  "doubles"             "$SCRIPT_DIR/pass_doubles.rivel"              0 $'3.5\n2.25\ntrue\ntrue'
 run_stdout_test  "string_features"     "$SCRIPT_DIR/pass_string_features.rivel"      5 $'hello world\nworld\ntrue\ntrue\ntrue\nworld!'
 run_stdout_test  "string_bindings"     "$SCRIPT_DIR/pass_string_bindings.rivel"      2 $'ab\nac'
+run_success_test "struct_field_assign" "$SCRIPT_DIR/pass_struct_field_assign.rivel"  24
+run_success_test "struct_nested_return" "$SCRIPT_DIR/pass_struct_nested_return.rivel" 42
 
 echo ""
 echo "--- Runtime Errors ---"
@@ -286,9 +288,12 @@ run_compile_fail_test "unsupported_list"     "$SCRIPT_DIR/fail/unsupported_list.
 run_compile_fail_test "for_start_not_int"    "$SCRIPT_DIR/fail/for_start_not_int.rivel"      "For range start must be Int"
 run_compile_fail_test "for_end_not_int"      "$SCRIPT_DIR/fail/for_end_not_int.rivel"        "For range end must be Int"
 run_compile_fail_test "assign_loop_var"      "$SCRIPT_DIR/fail/assign_loop_var.rivel"        "Cannot assign to immutable binding \`i\`"
+run_compile_fail_test "assign_immutable_struct_field" "$SCRIPT_DIR/fail/assign_immutable_struct_field.rivel" "Cannot assign to immutable binding \`person\`"
 run_compile_fail_test "for_missing_range"    "$SCRIPT_DIR/fail/for_missing_range.rivel"      "Expected \`..\` or \`..=\` in \`for\` range"
-run_compile_fail_test "unsupported_member"   "$SCRIPT_DIR/fail/unsupported_member_access.rivel" "Member access is not part of Rivel v1"
+run_compile_fail_test "unsupported_member"   "$SCRIPT_DIR/fail/unsupported_member_access.rivel" "Field access requires a struct value"
 run_compile_fail_test "unterminated_block_comment" "$SCRIPT_DIR/fail/unterminated_block_comment.rivel" "Unterminated block comment"
+run_compile_fail_test "top_level_const_struct_literal" "$SCRIPT_DIR/fail/top_level_const_struct_literal.rivel" "Struct literals are not allowed in top-level constants"
+run_compile_fail_test "recursive_struct" "$SCRIPT_DIR/fail/recursive_struct.rivel" "Recursive struct definitions are not supported"
 
 echo ""
 echo "--- Emit C Flag ---"

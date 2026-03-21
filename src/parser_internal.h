@@ -29,6 +29,7 @@ bool parser_parse_type(Parser *parser, Type *out_type);
 
 bool parser_parse_global_const(Parser *parser, Decl **out_decl);
 bool parser_parse_function(Parser *parser, Decl **out_decl);
+bool parser_parse_struct(Parser *parser, Decl **out_decl);
 bool parser_parse_block(Parser *parser, Block **out_block);
 bool parser_parse_statement(Parser *parser, Stmt **out_stmt);
 bool parser_parse_expression(Parser *parser, Expr **out_expr);

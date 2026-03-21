@@ -51,6 +51,10 @@ typedef struct {
 
 typedef struct {
     Vec storage;
+} SemanticStructTable;
+
+typedef struct {
+    Vec storage;
 } SemanticBuiltinTable;
 
 typedef struct {
@@ -69,9 +73,11 @@ struct SemanticResult {
     Arena *arena;
     SemanticGlobalTable globals;
     SemanticFunctionTable functions;
+    SemanticStructTable structs;
     SemanticBuiltinTable builtins;
     SemanticSymbolTable global_names;
     SemanticSymbolTable function_names;
+    SemanticSymbolTable struct_names;
     SemanticSymbolTable builtin_names;
     ExprTypeTable expr_types;
     ExprConstTable expr_consts;
@@ -123,6 +129,12 @@ SemanticFunctionInfo *semantic_function_table_push(SemanticFunctionTable *table,
 SemanticFunctionInfo *semantic_function_table_get(SemanticFunctionTable *table, size_t index);
 const SemanticFunctionInfo *semantic_function_table_get_const(const SemanticFunctionTable *table, size_t index);
 
+void semantic_struct_table_init(SemanticStructTable *table, Arena *arena);
+size_t semantic_struct_table_len(const SemanticStructTable *table);
+SemanticStructInfo *semantic_struct_table_push(SemanticStructTable *table, CompileError *error);
+SemanticStructInfo *semantic_struct_table_get(SemanticStructTable *table, size_t index);
+const SemanticStructInfo *semantic_struct_table_get_const(const SemanticStructTable *table, size_t index);
+
 void semantic_builtin_table_init(SemanticBuiltinTable *table, Arena *arena);
 size_t semantic_builtin_table_len(const SemanticBuiltinTable *table);
 SemanticBuiltinInfo *semantic_builtin_table_push(SemanticBuiltinTable *table, CompileError *error);
@@ -155,6 +167,7 @@ const BindingInfo *analyzer_resolve_local(const Analyzer *analyzer, StrSlice nam
 SemanticGlobalRecord *analyzer_lookup_global_record_mut(Analyzer *analyzer, StrSlice name);
 const SemanticGlobalInfo *analyzer_lookup_global(const Analyzer *analyzer, StrSlice name);
 const SemanticFunctionInfo *analyzer_lookup_function(const Analyzer *analyzer, StrSlice name);
+const SemanticStructInfo *analyzer_lookup_struct(const Analyzer *analyzer, StrSlice name);
 const SemanticBuiltinInfo *analyzer_lookup_builtin(const Analyzer *analyzer, StrSlice name);
 
 bool analyzer_register_builtins(Analyzer *analyzer);

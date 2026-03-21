@@ -4,6 +4,8 @@
 #include <stdlib.h>
 
 static bool parser_parse_primary(Parser *parser, Expr **out_expr);
+static bool parser_parse_struct_literal(Parser *parser, Token name_token, Expr **out_expr);
+static bool parser_starts_struct_literal(const Parser *parser);
 
 static bool parser_decode_string_literal(Parser *parser, Token token, StrSlice *out_value) {
     size_t max_len = token.lexeme.len >= 2U ? token.lexeme.len - 2U : 0U;
@@ -55,6 +57,21 @@ static bool parser_decode_string_literal(Parser *parser, Token token, StrSlice *
     return true;
 }
 
+static bool parser_starts_struct_literal(const Parser *parser) {
+    size_t offset = 0U;
+
+    if (!parser_is(parser, TOKEN_OPEN_BRACE, 0U)) {
+        return false;
+    }
+    while (parser_is(parser, TOKEN_END_STMT, offset + 1U)) {
+        offset += 1U;
+    }
+    if (parser_is(parser, TOKEN_CLOSE_BRACE, offset + 1U)) {
+        return true;
+    }
+    return parser_is(parser, TOKEN_IDENTIFIER, offset + 1U) && parser_is(parser, TOKEN_COLON, offset + 2U);
+}
+
 static bool parser_make_binary(Parser *parser, Token token, Expr *lhs, Expr *rhs, Expr **out_expr) {
     Expr *expr = parser_new_expr(parser, EXPR_BINARY);
 
@@ -69,44 +86,64 @@ static bool parser_make_binary(Parser *parser, Token token, Expr *lhs, Expr *rhs
     return true;
 }
 
-static bool parser_parse_call(Parser *parser, Expr **out_expr) {
+static bool parser_parse_postfix(Parser *parser, Expr **out_expr) {
     Expr *expr;
 
     if (!parser_parse_primary(parser, &expr)) {
         return false;
     }
 
-    while (parser_match(parser, TOKEN_OPEN_PAREN)) {
-        Token open_paren = *parser_previous(parser, 0U);
-        Expr *call_expr;
+    while (true) {
+        if (parser_match(parser, TOKEN_OPEN_PAREN)) {
+            Token open_paren = *parser_previous(parser, 0U);
+            Expr *call_expr;
 
-        if (expr->kind != EXPR_NAME) {
-            return error_set_at(parser->error, "Parse", open_paren.line, open_paren.column, "Only named functions can be called in Rivel v1");
-        }
+            if (expr->kind != EXPR_NAME) {
+                return error_set_at(parser->error, "Parse", open_paren.line, open_paren.column, "Only named functions can be called in Rivel v1");
+            }
 
-        call_expr = parser_new_expr(parser, EXPR_CALL);
-        if (call_expr == NULL) {
-            return false;
-        }
-        call_expr->token = expr->token;
-        call_expr->as.call.callee = expr->as.name;
-        expr_list_init(&call_expr->as.call.args, parser->arena);
+            call_expr = parser_new_expr(parser, EXPR_CALL);
+            if (call_expr == NULL) {
+                return false;
+            }
+            call_expr->token = expr->token;
+            call_expr->as.call.callee = expr->as.name;
+            expr_list_init(&call_expr->as.call.args, parser->arena);
 
-        if (!parser_is(parser, TOKEN_CLOSE_PAREN, 0U)) {
-            do {
-                Expr **arg = expr_list_push(&call_expr->as.call.args, parser->error);
-                if (arg == NULL) {
-                    return false;
-                }
-                if (!parser_parse_expression(parser, arg)) {
-                    return false;
-                }
-            } while (parser_match(parser, TOKEN_COMMA));
+            if (!parser_is(parser, TOKEN_CLOSE_PAREN, 0U)) {
+                do {
+                    Expr **arg = expr_list_push(&call_expr->as.call.args, parser->error);
+                    if (arg == NULL) {
+                        return false;
+                    }
+                    if (!parser_parse_expression(parser, arg)) {
+                        return false;
+                    }
+                } while (parser_match(parser, TOKEN_COMMA));
+            }
+            if (!parser_expect(parser, TOKEN_CLOSE_PAREN, "Expected `)` after call arguments", NULL)) {
+                return false;
+            }
+            expr = call_expr;
+            continue;
         }
-        if (!parser_expect(parser, TOKEN_CLOSE_PAREN, "Expected `)` after call arguments", NULL)) {
-            return false;
+        if (parser_match(parser, TOKEN_DOT)) {
+            const Token *field_token;
+            Expr *field_expr = parser_new_expr(parser, EXPR_FIELD);
+
+            if (field_expr == NULL) {
+                return false;
+            }
+            if (!parser_expect(parser, TOKEN_IDENTIFIER, "Expected a field name after `.`", &field_token)) {
+                return false;
+            }
+            field_expr->token = *field_token;
+            field_expr->as.field.base = expr;
+            field_expr->as.field.name = field_token->lexeme;
+            expr = field_expr;
+            continue;
         }
-        expr = call_expr;
+        break;
     }
 
     *out_expr = expr;
@@ -129,7 +166,7 @@ static bool parser_parse_unary(Parser *parser, Expr **out_expr) {
         *out_expr = expr;
         return true;
     }
-    return parser_parse_call(parser, out_expr);
+    return parser_parse_postfix(parser, out_expr);
 }
 
 static bool parser_parse_multiplicative(Parser *parser, Expr **out_expr) {
@@ -298,6 +335,55 @@ static bool parser_parse_double_literal(Parser *parser, Token token, double *out
     return true;
 }
 
+static bool parser_parse_struct_literal(Parser *parser, Token name_token, Expr **out_expr) {
+    Expr *expr = parser_new_expr(parser, EXPR_STRUCT_LITERAL);
+
+    if (expr == NULL) {
+        return false;
+    }
+    expr->token = name_token;
+    expr->as.struct_literal.struct_name = name_token.lexeme;
+    struct_literal_field_list_init(&expr->as.struct_literal.fields, parser->arena);
+
+    if (!parser_expect(parser, TOKEN_OPEN_BRACE, "Expected `{` after struct name", NULL)) {
+        return false;
+    }
+    parser_skip_separators(parser);
+    while (!parser_is(parser, TOKEN_CLOSE_BRACE, 0U)) {
+        const Token *field_token;
+        StructLiteralField *field = struct_literal_field_list_push(&expr->as.struct_literal.fields, parser->error);
+
+        if (field == NULL) {
+            return false;
+        }
+        if (!parser_expect(parser, TOKEN_IDENTIFIER, "Expected a field name", &field_token)) {
+            return false;
+        }
+        if (!parser_expect(parser, TOKEN_COLON, "Expected `:` after field name", NULL)) {
+            return false;
+        }
+        field->token = *field_token;
+        field->name = field_token->lexeme;
+        if (!parser_parse_expression(parser, &field->value)) {
+            return false;
+        }
+
+        if (parser_match(parser, TOKEN_COMMA) || parser_match(parser, TOKEN_END_STMT)) {
+            parser_skip_separators(parser);
+            continue;
+        }
+        if (!parser_is(parser, TOKEN_CLOSE_BRACE, 0U)) {
+            return error_set_at(parser->error, "Parse", parser_peek(parser, 0U)->line, parser_peek(parser, 0U)->column, "Expected `,` or `}` after struct literal field");
+        }
+    }
+    if (!parser_expect(parser, TOKEN_CLOSE_BRACE, "Expected `}` after struct literal", NULL)) {
+        return false;
+    }
+
+    *out_expr = expr;
+    return true;
+}
+
 static bool parser_parse_primary(Parser *parser, Expr **out_expr) {
     if (parser_match(parser, TOKEN_INT_LITERAL)) {
         Token token = *parser_previous(parser, 0U);
@@ -359,6 +445,9 @@ static bool parser_parse_primary(Parser *parser, Expr **out_expr) {
 
         if (expr == NULL) {
             return false;
+        }
+        if (parser_starts_struct_literal(parser)) {
+            return parser_parse_struct_literal(parser, token, out_expr);
         }
         expr->token = token;
         expr->as.name = token.lexeme;

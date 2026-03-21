@@ -26,10 +26,14 @@ bool parse_program(const TokenList *tokens, Arena *arena, Program *out_program, 
             if (!parser_parse_function(&parser, slot)) {
                 return false;
             }
+        } else if (parser_is(&parser, TOKEN_KW_STRUCT, 0U)) {
+            if (!parser_parse_struct(&parser, slot)) {
+                return false;
+            }
         } else if (parser_is(&parser, TOKEN_KW_MUT, 0U)) {
             return error_set_at(error, "Parse", parser_peek(&parser, 0U)->line, parser_peek(&parser, 0U)->column, "Top-level `mut` declarations are not part of Rivel v1");
         } else {
-            return error_set_at(error, "Parse", parser_peek(&parser, 0U)->line, parser_peek(&parser, 0U)->column, "Expected a top-level `const` or `fn` declaration");
+            return error_set_at(error, "Parse", parser_peek(&parser, 0U)->line, parser_peek(&parser, 0U)->column, "Expected a top-level `const`, `fn`, or `struct` declaration");
         }
 
         if (!parser_consume_decl_end(&parser)) {

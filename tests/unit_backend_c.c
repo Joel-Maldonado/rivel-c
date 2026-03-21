@@ -237,11 +237,59 @@ static void test_c_backend_emits_string_runtime_and_release_aware_lowering(void)
     arena_free(&arena);
 }
 
+static void test_c_backend_emits_struct_lowering_and_string_field_cleanup(void) {
+    Arena arena;
+    CompileError error;
+    TokenList tokens;
+    Program program;
+    SemanticResult *result;
+    StrBuf output;
+    const char *generated_c;
+
+    arena_init(&arena, 4096U);
+    error_init(&error);
+    token_list_init(&tokens, &arena);
+    decl_list_init(&program.decls, &arena);
+    strbuf_init(&output);
+
+    assert(tokenize_source(
+        "struct Person {\n"
+        "    name: String\n"
+        "    age: Int\n"
+        "}\n"
+        "fn main() -> Int {\n"
+        "    mut person = Person { name: \"John\", age: 23 }\n"
+        "    person.name = \"Jane\"\n"
+        "    return person.age\n"
+        "}\n",
+        &arena,
+        &tokens,
+        &error));
+    assert(parse_program(&tokens, &arena, &program, &error));
+
+    result = semantic_result_create(&arena, &error);
+    assert(result != NULL);
+    assert(semantic_analyze(&program, result, &error));
+    assert(c_backend_generate(&program, result, &arena, &output, &error));
+
+    generated_c = strbuf_cstr(&output);
+    assert(strstr(generated_c, "typedef struct RivelStruct_Person") != NULL);
+    assert(strstr(generated_c, "RivelStruct_Person rivel_local_person_0") != NULL);
+    assert(strstr(generated_c, "rivel_local_person_0.name") != NULL);
+    assert(strstr(generated_c, "rivel_string_release(rivel_local_person_0.name);") != NULL);
+
+    semantic_result_dispose(result);
+    strbuf_free(&output);
+    error_free(&error);
+    arena_free(&arena);
+}
+
 int main(void) {
     test_c_backend_uses_semantic_queries();
     test_c_backend_emits_runtime_helpers_and_unique_shadowed_locals();
     test_c_backend_captures_for_range_bounds_once();
     test_c_backend_emits_double_types_and_print_helper();
     test_c_backend_emits_string_runtime_and_release_aware_lowering();
+    test_c_backend_emits_struct_lowering_and_string_field_cleanup();
     return 0;
 }

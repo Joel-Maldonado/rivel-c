@@ -1,0 +1,10 @@
+struct Person {
+    name: String
+    age: Int
+}
+
+fn main() -> Int {
+    mut person = Person { name: "John", age: 23 }
+    person.age = 24
+    return person.age
+}

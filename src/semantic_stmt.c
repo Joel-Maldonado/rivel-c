@@ -22,6 +22,16 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
         Type initializer_type;
         Type binding_type;
 
+        if (stmt->as.binding.has_annotation && stmt->as.binding.annotation.kind == TYPE_STRUCT
+            && analyzer_lookup_struct(analyzer, stmt->as.binding.annotation.struct_name) == NULL) {
+            return error_set_at(analyzer->error,
+                                "Semantic",
+                                stmt->token.line,
+                                stmt->token.column,
+                                "Unknown struct type `%.*s`",
+                                (int)stmt->as.binding.annotation.struct_name.len,
+                                stmt->as.binding.annotation.struct_name.data);
+        }
         if (!analyzer_analyze_expr(analyzer, stmt->as.binding.initializer, &initializer_type)) {
             return false;
         }
@@ -41,23 +51,51 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
         return analyzer_declare_local(analyzer, stmt->token, stmt->as.binding.name, binding_type, stmt->as.binding.is_mutable);
     }
     if (stmt->kind == STMT_ASSIGN) {
-        const BindingInfo *binding = analyzer_resolve_local(analyzer, stmt->as.assign.name);
+        const BindingInfo *binding = NULL;
+        Type target_type;
         Type value_type;
+        StrSlice binding_name;
+
+        if (!analyzer_analyze_expr(analyzer, stmt->as.assign.target, &target_type)) {
+            return false;
+        }
+        if (stmt->as.assign.target->kind == EXPR_NAME) {
+            binding_name = stmt->as.assign.target->as.name;
+            binding = analyzer_resolve_local(analyzer, binding_name);
+        } else if (stmt->as.assign.target->kind == EXPR_FIELD) {
+            const Expr *base_expr = stmt->as.assign.target->as.field.base;
+
+            if (base_expr->kind != EXPR_NAME) {
+                return error_set_at(analyzer->error,
+                                    "Semantic",
+                                    stmt->token.line,
+                                    stmt->token.column,
+                                    "Field assignment requires a mutable local struct binding");
+            }
+            binding_name = base_expr->as.name;
+            binding = analyzer_resolve_local(analyzer, binding_name);
+        } else {
+            return error_set_at(analyzer->error,
+                                "Semantic",
+                                stmt->token.line,
+                                stmt->token.column,
+                                "Assignment target must be a binding name or field access");
+        }
 
         if (binding == NULL) {
-            if (analyzer_lookup_global(analyzer, stmt->as.assign.name) != NULL) {
-                return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Cannot assign to immutable binding `%.*s`", (int)stmt->as.assign.name.len, stmt->as.assign.name.data);
+            if (analyzer_lookup_global(analyzer, binding_name) != NULL) {
+                return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Cannot assign to immutable binding `%.*s`", (int)binding_name.len, binding_name.data);
             }
-            return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Unknown binding `%.*s`", (int)stmt->as.assign.name.len, stmt->as.assign.name.data);
+            return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Unknown binding `%.*s`", (int)binding_name.len, binding_name.data);
         }
         if (!binding->is_mutable) {
-            return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Cannot assign to immutable binding `%.*s`", (int)stmt->as.assign.name.len, stmt->as.assign.name.data);
+            return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Cannot assign to immutable binding `%.*s`", (int)binding_name.len, binding_name.data);
         }
         if (!analyzer_analyze_expr(analyzer, stmt->as.assign.value, &value_type)) {
             return false;
         }
-        if (!type_can_widen_to(value_type, binding->type)) {
-            return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Cannot assign value of type %s to %s", type_display_name(value_type), type_display_name(binding->type));
+        if (!type_can_widen_to(value_type, target_type)) {
+            return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Cannot assign value of type %s to %s", type_display_name(value_type), type_display_name(target_type));
         }
         return true;
     }
