@@ -2,13 +2,13 @@
 
 Rivel is a small statically typed, compiled, language. This repo is mostly a toy compiler project I made to learn more about compilers. As such, it is extremely experimental and not meant at all to be production level.
 
-In fact, most of the features you expect to be in a programming language aren't implemented yet!
+That said, it already has the fundamentals: variables, constants, conditionals, while/for loops, functions, and structs.
 
-Right now the compiler simply compiles Rivel source code to C which then produces a native executable via gcc:
+Right now the compiler automatically compiles Rivel source code to C which then produces a native executable via gcc:
 
 `Rivel -> automatically generated C -> native executable`
 
-If you want the exact syntax and behavior, see [docs/grammar.md](docs/grammar.md). If you want a fuller showcase of what Rivel looks like today, run the `example.rivel` cafe closing report.
+If you want the exact syntax and behavior, see [docs/grammar.md](docs/grammar.md). If you want a fuller showcase of what Rivel looks like today, run the `example.rivel`.
 
 ## Quickstart
 
@@ -30,12 +30,15 @@ That gives you `./rivel`, the rivel compiler.
 Create `hello.rivel`:
 
 ```rivel
+// Constant
 const BASE: Int = 40
 
+// Function
 fn add_one(x: Int) -> Int {
     return x * 2 + 1
 }
 
+// Main entry point
 fn main() -> Int {
     const result = add_one(BASE)
     print(result)
@@ -80,13 +83,11 @@ The repo also includes a larger `example.rivel` program that shows strings, doub
 
 ### Declarations and Types
 
-- top-level `const` declarations
-- top-level `struct` declarations
+- built-in types: `Int`, `Double`, `Bool`, and `String`
+- local `const` and `mut` bindings
 - function declarations with explicit parameter and return types
 - required entrypoint `fn main() -> Int`
-- local `const` and `mut` bindings
-- optional type annotations on local bindings with inference from the initializer
-- built-in types: `Int`, `Double`, `Bool`, and `String`
+- top-level `struct` declarations
 - nominal struct types with named fields
 
 ### Statements and Control Flow
@@ -102,9 +103,7 @@ The repo also includes a larger `example.rivel` program that shows strings, doub
 
 ### Expressions
 
-- integer, decimal double, boolean, and string literals
 - struct literals such as `Person { name: "John", age: 23 }`
-- identifier references
 - field access with `.`, such as `person.age`
 - named function calls in expression position
 - grouped expressions with `(...)`
@@ -116,31 +115,18 @@ The repo also includes a larger `example.rivel` program that shows strings, doub
 ### Functions, Scope, and Runtime Behavior
 
 - forward calls and recursion
-- lexical block scope with shadowing in nested scopes
-- top-level constant evaluation
-- builtin `print(expr)` for `Int`, `Double`, `Bool`, and `String`
 - string builtins `len`, `substr`, `contains`, `starts_with`, `ends_with`
 - struct values are copied by value; string-containing structs retain and release nested strings automatically
-- strings are immutable UTF-8 byte sequences; `len` and `substr` use byte counts
-- division and modulo by zero are checked at runtime and terminate with an error
-- substring bounds are checked at runtime and terminate with an error
-- `main`'s returned `Int` becomes the program's process exit code
+- strings are immutable UTF-8 byte sequences, and `len` and `substr` use byte counts
 
 ## What It Does Not Do
 
-The language is tiny and not developed yet. Some important limits:
+The language is very tiny, basic, and underdeveloed. Some current limits:
 
+- no arrays yet
 - one input file per compiler invocation
 - no imports or modules
-- no character literals or lists
-- no string indexing or `Char` type
-- no generic iterables, range values, or stepped/reverse `for` loops
-- no top-level `mut`
-- no `#` comments
-- no methods, struct equality, or top-level `const` struct values
-- no recursive/self-referential structs
 - `print(...)` is a statement-only builtin, not an expression
-- conditions for `if` and `while` must not be wrapped directly in outer parentheses
 
 ## Testing
 
