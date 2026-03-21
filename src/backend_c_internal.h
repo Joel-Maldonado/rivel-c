@@ -53,6 +53,7 @@ void backend_indent_push(Backend *backend);
 void backend_indent_pop(Backend *backend);
 
 const char *backend_c_type(Type type);
+char *backend_double_literal(Backend *backend, double value);
 char *backend_function_name(Backend *backend, StrSlice name);
 char *backend_global_name(Backend *backend, StrSlice name);
 char *backend_param_name(Backend *backend, StrSlice name);

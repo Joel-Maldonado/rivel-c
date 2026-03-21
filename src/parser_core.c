@@ -119,6 +119,10 @@ bool parser_parse_type(Parser *parser, Type *out_type) {
         out_type->kind = TYPE_INT;
         return true;
     }
+    if (parser_match(parser, TOKEN_KW_TYPE_DOUBLE)) {
+        out_type->kind = TYPE_DOUBLE;
+        return true;
+    }
     if (parser_match(parser, TOKEN_KW_TYPE_BOOL)) {
         out_type->kind = TYPE_BOOL;
         return true;

@@ -64,6 +64,9 @@ char *backend_emit_expr(Backend *backend, const Expr *expr) {
     if (expr->kind == EXPR_INT) {
         return arena_printf(backend->arena, backend->error, "INT64_C(%lld)", (long long)expr->as.int_value);
     }
+    if (expr->kind == EXPR_DOUBLE) {
+        return backend_double_literal(backend, expr->as.double_value);
+    }
     if (expr->kind == EXPR_BOOL) {
         return arena_copy_cstr(backend->arena, expr->as.bool_value ? "true" : "false", backend->error);
     }
@@ -109,7 +112,16 @@ char *backend_emit_expr(Backend *backend, const Expr *expr) {
             return arena_printf(backend->arena, backend->error, "(%s * %s)", lhs, rhs);
         }
         if (expr->as.binary.op == TOKEN_SLASH) {
-            return arena_printf(backend->arena, backend->error, "rivel_div(%s, %s)", lhs, rhs);
+            Type type;
+
+            if (!semantic_expr_type(backend->semantics, expr, &type)) {
+                error_set(backend->error, "Backend", "Internal error: missing semantic type for division expression");
+                return NULL;
+            }
+            if (type.kind == TYPE_INT) {
+                return arena_printf(backend->arena, backend->error, "rivel_div(%s, %s)", lhs, rhs);
+            }
+            return arena_printf(backend->arena, backend->error, "(%s / %s)", lhs, rhs);
         }
         if (expr->as.binary.op == TOKEN_PERCENT) {
             return arena_printf(backend->arena, backend->error, "rivel_mod(%s, %s)", lhs, rhs);

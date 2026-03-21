@@ -230,6 +230,24 @@ static bool parser_parse_int_literal(Parser *parser, Token token, int64_t *out_v
     return true;
 }
 
+static bool parser_parse_double_literal(Parser *parser, Token token, double *out_value) {
+    char *text = arena_copy_slice(parser->arena, token.lexeme, parser->error);
+    char *end = NULL;
+    double value;
+
+    if (text == NULL) {
+        return false;
+    }
+
+    errno = 0;
+    value = strtod(text, &end);
+    if (errno == ERANGE) {
+        return error_set_at(parser->error, "Parse", token.line, token.column, "Double literal out of range for Double");
+    }
+    *out_value = value;
+    return true;
+}
+
 static bool parser_parse_primary(Parser *parser, Expr **out_expr) {
     if (parser_match(parser, TOKEN_INT_LITERAL)) {
         Token token = *parser_previous(parser, 0U);
@@ -240,6 +258,20 @@ static bool parser_parse_primary(Parser *parser, Expr **out_expr) {
         }
         expr->token = token;
         if (!parser_parse_int_literal(parser, token, &expr->as.int_value)) {
+            return false;
+        }
+        *out_expr = expr;
+        return true;
+    }
+    if (parser_match(parser, TOKEN_DOUBLE_LITERAL)) {
+        Token token = *parser_previous(parser, 0U);
+        Expr *expr = parser_new_expr(parser, EXPR_DOUBLE);
+
+        if (expr == NULL) {
+            return false;
+        }
+        expr->token = token;
+        if (!parser_parse_double_literal(parser, token, &expr->as.double_value)) {
             return false;
         }
         *out_expr = expr;

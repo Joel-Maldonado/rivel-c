@@ -1,5 +1,8 @@
 #include "backend_c_internal.h"
 
+#include <math.h>
+#include <string.h>
+
 void backend_binding_table_init(BackendBindingTable *table) {
     strmap_init(&table->storage);
 }
@@ -109,7 +112,35 @@ void backend_indent_pop(Backend *backend) {
 }
 
 const char *backend_c_type(Type type) {
-    return type.kind == TYPE_INT ? "int64_t" : "bool";
+    switch (type.kind) {
+        case TYPE_INT:
+            return "int64_t";
+        case TYPE_DOUBLE:
+            return "double";
+        case TYPE_BOOL:
+            return "bool";
+    }
+    return "<type>";
+}
+
+char *backend_double_literal(Backend *backend, double value) {
+    char *text;
+
+    if (isnan(value)) {
+        return arena_copy_cstr(backend->arena, "NAN", backend->error);
+    }
+    if (isinf(value)) {
+        return arena_copy_cstr(backend->arena, signbit(value) ? "-INFINITY" : "INFINITY", backend->error);
+    }
+
+    text = arena_printf(backend->arena, backend->error, "%.17g", value);
+    if (text == NULL) {
+        return NULL;
+    }
+    if (strchr(text, '.') != NULL || strchr(text, 'e') != NULL || strchr(text, 'E') != NULL) {
+        return text;
+    }
+    return arena_printf(backend->arena, backend->error, "%s.0", text);
 }
 
 char *backend_function_name(Backend *backend, StrSlice name) {
@@ -174,6 +205,9 @@ bool backend_add_local(Backend *backend, StrSlice name, const char *c_name, Type
 char *backend_literal(Backend *backend, ConstValue value) {
     if (value.type.kind == TYPE_BOOL) {
         return arena_copy_cstr(backend->arena, value.bool_value ? "true" : "false", backend->error);
+    }
+    if (value.type.kind == TYPE_DOUBLE) {
+        return backend_double_literal(backend, value.double_value);
     }
     return arena_printf(backend->arena, backend->error, "INT64_C(%lld)", (long long)value.int_value);
 }

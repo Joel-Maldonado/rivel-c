@@ -119,6 +119,17 @@ ConstValue semantic_make_int(int64_t value) {
 
     out.type.kind = TYPE_INT;
     out.int_value = value;
+    out.double_value = 0.0;
+    out.bool_value = false;
+    return out;
+}
+
+ConstValue semantic_make_double(double value) {
+    ConstValue out;
+
+    out.type.kind = TYPE_DOUBLE;
+    out.int_value = 0;
+    out.double_value = value;
     out.bool_value = false;
     return out;
 }
@@ -128,6 +139,7 @@ ConstValue semantic_make_bool(bool value) {
 
     out.type.kind = TYPE_BOOL;
     out.int_value = 0;
+    out.double_value = 0.0;
     out.bool_value = value;
     return out;
 }

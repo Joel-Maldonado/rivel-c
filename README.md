@@ -76,7 +76,7 @@ Flags:
 - required entrypoint `fn main() -> Int`
 - local `const` and `mut` bindings
 - optional type annotations on local bindings with inference from the initializer
-- built-in types: `Int` and `Bool`
+- built-in types: `Int`, `Double`, and `Bool`
 
 ### Statements and Control Flow
 
@@ -88,7 +88,7 @@ Flags:
 
 ### Expressions
 
-- integer and boolean literals
+- integer, decimal double, and boolean literals
 - identifier references
 - named function calls in expression position
 - grouped expressions with `(...)`
@@ -102,7 +102,7 @@ Flags:
 - forward calls and recursion
 - lexical block scope with shadowing in nested scopes
 - top-level constant evaluation
-- builtin `print(expr)` for `Int` and `Bool`
+- builtin `print(expr)` for `Int`, `Double`, and `Bool`
 - division and modulo by zero are checked at runtime and terminate with an error
 - `main`'s returned `Int` becomes the program's process exit code
 
@@ -111,7 +111,7 @@ Flags:
 The language is tiny and not developed yet. Some important limits:
 
 - one input file per compiler invocation
-- only `Int` and `Bool` exist today
+- only `Int`, `Double`, and `Bool` exist today
 - no imports or modules
 - no strings, character literals, lists, or member access
 - no `for` loops

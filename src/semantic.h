@@ -15,6 +15,7 @@ typedef struct SemanticResult SemanticResult;
 typedef struct {
     Type type;
     int64_t int_value;
+    double double_value;
     bool bool_value;
 } ConstValue;
 

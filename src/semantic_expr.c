@@ -1,45 +1,49 @@
 #include "semantic_internal.h"
 
 static bool analyzer_analyze_binary_expr(Analyzer *analyzer, Token token, TokenType op, Type lhs, Type rhs, Type *out_type) {
-    Type int_type;
-    Type bool_type;
-
-    int_type.kind = TYPE_INT;
-    bool_type.kind = TYPE_BOOL;
-
     switch (op) {
         case TOKEN_PLUS:
         case TOKEN_MINUS:
         case TOKEN_STAR:
+            if (!type_is_numeric(lhs) || !type_is_numeric(rhs)) {
+                return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Operator %s expects Int operands", token_name(op));
+            }
+            out_type->kind = lhs.kind == TYPE_INT && rhs.kind == TYPE_INT ? TYPE_INT : TYPE_DOUBLE;
+            return true;
         case TOKEN_SLASH:
+            if (!type_is_numeric(lhs) || !type_is_numeric(rhs)) {
+                return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Operator %s expects Int operands", token_name(op));
+            }
+            out_type->kind = lhs.kind == TYPE_INT && rhs.kind == TYPE_INT ? TYPE_INT : TYPE_DOUBLE;
+            return true;
         case TOKEN_PERCENT:
             if (lhs.kind != TYPE_INT || rhs.kind != TYPE_INT) {
                 return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Operator %s expects Int operands", token_name(op));
             }
-            *out_type = int_type;
+            out_type->kind = TYPE_INT;
             return true;
         case TOKEN_LESS:
         case TOKEN_LESS_EQ:
         case TOKEN_GREATER:
         case TOKEN_GREATER_EQ:
-            if (lhs.kind != TYPE_INT || rhs.kind != TYPE_INT) {
+            if (!type_is_numeric(lhs) || !type_is_numeric(rhs)) {
                 return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Comparison operators expect Int operands");
             }
-            *out_type = bool_type;
+            out_type->kind = TYPE_BOOL;
             return true;
         case TOKEN_EQ_EQ:
         case TOKEN_BANG_EQ:
-            if (!type_equal(lhs, rhs)) {
+            if (!type_equal(lhs, rhs) && !(type_is_numeric(lhs) && type_is_numeric(rhs))) {
                 return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Equality operators require matching operand types");
             }
-            *out_type = bool_type;
+            out_type->kind = TYPE_BOOL;
             return true;
         case TOKEN_KW_AND:
         case TOKEN_KW_OR:
             if (lhs.kind != TYPE_BOOL || rhs.kind != TYPE_BOOL) {
                 return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Logical operators expect Bool operands");
             }
-            *out_type = bool_type;
+            out_type->kind = TYPE_BOOL;
             return true;
         default:
             return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Unsupported operator");
@@ -59,7 +63,7 @@ static bool analyzer_analyze_builtin_call(Analyzer *analyzer, const Expr *call_e
         if (!analyzer_analyze_expr(analyzer, expr_list_get(&call_expr->as.call.args, 0U), &arg_type)) {
             return false;
         }
-        if (arg_type.kind != TYPE_INT && arg_type.kind != TYPE_BOOL) {
+        if (arg_type.kind != TYPE_INT && arg_type.kind != TYPE_DOUBLE && arg_type.kind != TYPE_BOOL) {
             return error_set_at(analyzer->error, "Semantic", call_expr->token.line, call_expr->token.column, "Builtin `print` does not support argument type %s", type_display_name(arg_type));
         }
         out_type->kind = TYPE_INT;
@@ -95,7 +99,7 @@ bool analyzer_analyze_call(Analyzer *analyzer, const Expr *call_expr, bool allow
         if (!analyzer_analyze_expr(analyzer, arg, &arg_type)) {
             return false;
         }
-        if (!type_equal(arg_type, param->type)) {
+        if (!type_can_widen_to(arg_type, param->type)) {
             return error_set_at(
                 analyzer->error,
                 "Semantic",
@@ -122,6 +126,8 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
 
     if (expr->kind == EXPR_INT) {
         out_type->kind = TYPE_INT;
+    } else if (expr->kind == EXPR_DOUBLE) {
+        out_type->kind = TYPE_DOUBLE;
     } else if (expr->kind == EXPR_BOOL) {
         out_type->kind = TYPE_BOOL;
     } else if (expr->kind == EXPR_NAME) {
@@ -148,10 +154,10 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
             return false;
         }
         if (expr->as.unary.op == TOKEN_MINUS) {
-            if (operand_type.kind != TYPE_INT) {
-                return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Unary `-` expects Int");
+            if (!type_is_numeric(operand_type)) {
+                return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Unary `-` expects Int or Double");
             }
-            out_type->kind = TYPE_INT;
+            *out_type = operand_type;
         } else {
             if (operand_type.kind != TYPE_BOOL) {
                 return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "`not` expects Bool");

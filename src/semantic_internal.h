@@ -87,6 +87,7 @@ typedef struct {
 uintptr_t semantic_index_value(size_t index);
 size_t semantic_map_index(uintptr_t value);
 ConstValue semantic_make_int(int64_t value);
+ConstValue semantic_make_double(double value);
 ConstValue semantic_make_bool(bool value);
 
 void binding_table_init(BindingTable *table);

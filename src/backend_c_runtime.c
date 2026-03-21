@@ -63,12 +63,23 @@ static bool backend_emit_runtime_print_helpers(Backend *backend) {
         return false;
     }
     backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static void rivel_print_double(double value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "printf(\"%.17g\\n\", value);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
     return backend_emit_line(backend, "}");
 }
 
 bool backend_emit_prelude(Backend *backend) {
     if (!backend_emit_line(backend, "#include <stdbool.h>")
         || !backend_emit_line(backend, "#include <stdint.h>")
+        || !backend_emit_line(backend, "#include <math.h>")
         || !backend_emit_line(backend, "#include <stdio.h>")
         || !backend_emit_line(backend, "#include <stdlib.h>")
         || !backend_emit_line(backend, "")

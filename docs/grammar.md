@@ -64,7 +64,7 @@ The current reserved keywords and built-in literals are:
 ```txt
 const  mut  fn  return  if  elif  else  while
 and  or  not
-Int  Bool
+Int  Double  Bool
 true  false
 ```
 
@@ -76,7 +76,10 @@ The lexer also rejects several legacy or unsupported words early, including
 Rivel v1 supports:
 
 - decimal integer literals, stored as signed 64-bit `Int`
+- decimal double literals with a required decimal point, such as `1.0`, `0.5`, and `10.`
 - boolean literals: `true`, `false`
+
+Exponent notation such as `1e3` is not part of Rivel v1 doubles.
 
 String literals, character literals, and list literals are not part of v1.
 
@@ -92,7 +95,7 @@ FunctionDecl    ::= "fn" IDENT "(" ParamList? ")" "->" Type Block
 ParamList       ::= Param ("," Param)*
 Param           ::= IDENT ":" Type
 TypeAnn         ::= ":" Type
-Type            ::= "Int" | "Bool"
+Type            ::= "Int" | "Double" | "Bool"
 Separator       ::= NEWLINE | ";"
 ```
 
@@ -120,9 +123,10 @@ fn main() -> Int {
 
 ## Types
 
-Right now, only has exactly two types:
+Right now, Rivel has exactly three built-in types:
 
 - `Int`
+- `Double`
 - `Bool`
 
 Type annotations may appear on:
@@ -263,7 +267,7 @@ MulExpr         ::= UnaryExpr (("*" | "/" | "%") UnaryExpr)*
 UnaryExpr       ::= ("not" | "-") UnaryExpr | CallExpr
 CallExpr        ::= IDENT "(" ArgList? ")" | Primary
 ArgList         ::= Expr ("," Expr)*
-Primary         ::= INT_LIT | BOOL_LIT | IDENT | "(" Expr ")"
+Primary         ::= INT_LIT | DOUBLE_LIT | BOOL_LIT | IDENT | "(" Expr ")"
 ```
 
 ### Calls
@@ -295,7 +299,7 @@ Rules:
 
 - it must be used as a statement, not as an expression
 - it accepts exactly one argument
-- the argument must be `Int` or `Bool`
+- the argument must be `Int`, `Double`, or `Bool`
 - it writes the value followed by a newline
 - `print` is a reserved top-level name
 
@@ -329,12 +333,15 @@ At runtime, the returned `Int` becomes the process exit code.
 
 ### Operators and Type Rules
 
-- arithmetic operators require `Int` operands and produce `Int`
-- comparison operators require `Int` operands and produce `Bool`
-- equality operators require matching operand types and produce `Bool`
+- `+`, `-`, and `*` accept numeric operands; `Int op Int` produces `Int`, otherwise they produce `Double`
+- `/` accepts numeric operands; `Int / Int` produces `Int`, otherwise it produces `Double`
+- `%` requires `Int` operands and produces `Int`
+- comparison operators accept numeric operands and produce `Bool`
+- equality operators accept matching operand types, and also allow mixed `Int`/`Double` comparisons, producing `Bool`
 - `and` and `or` require `Bool` operands and produce `Bool`
-- unary `-` requires `Int`
+- unary `-` accepts `Int` or `Double`
 - `not` requires `Bool`
+- `Int` may widen implicitly to `Double` in numeric expressions, assignments, annotated bindings, function arguments, and returns
 
 Conditions in `if` and `while` must be `Bool`.
 
@@ -357,7 +364,7 @@ Top-level `const` initializers must be constant expressions.
 
 Allowed ingredients:
 
-- integer and boolean literals
+- integer, double, and boolean literals
 - references to other top-level constants
 - unary `-` and `not`
 - supported arithmetic, comparison, equality, and logical operators
@@ -381,11 +388,15 @@ const READY: Bool = BASE == 40 and not false
 The generated program includes runtime helpers for:
 
 - printing `Int`
+- printing `Double`
 - printing `Bool`
 - checking division by zero for `/` and `%`
 
 Division or modulo by zero prints `division by zero` to `stderr` and exits with
 status `1`.
+
+Floating-point division follows the generated C program's `double` behavior, so
+it may produce `inf` or `nan`.
 
 ## Not in Rivel v1
 

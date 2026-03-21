@@ -95,8 +95,52 @@ static void test_c_backend_emits_runtime_helpers_and_unique_shadowed_locals(void
     arena_free(&arena);
 }
 
+static void test_c_backend_emits_double_types_and_print_helper(void) {
+    Arena arena;
+    CompileError error;
+    TokenList tokens;
+    Program program;
+    SemanticResult *result;
+    StrBuf output;
+    const char *generated_c;
+
+    arena_init(&arena, 4096U);
+    error_init(&error);
+    token_list_init(&tokens, &arena);
+    decl_list_init(&program.decls, &arena);
+    strbuf_init(&output);
+
+    assert(tokenize_source(
+        "const PI: Double = 3.5\n"
+        "fn add_one(x: Double) -> Double { return x + 1 }\n"
+        "fn main() -> Int {\n"
+        "    print(add_one(PI))\n"
+        "    return 0\n"
+        "}\n",
+        &arena,
+        &tokens,
+        &error));
+    assert(parse_program(&tokens, &arena, &program, &error));
+
+    result = semantic_result_create(&arena, &error);
+    assert(result != NULL);
+    assert(semantic_analyze(&program, result, &error));
+    assert(c_backend_generate(&program, result, &arena, &output, &error));
+
+    generated_c = strbuf_cstr(&output);
+    assert(strstr(generated_c, "static void rivel_print_double(double value)") != NULL);
+    assert(strstr(generated_c, "static const double rivel_global_PI") != NULL);
+    assert(strstr(generated_c, "double rivel_fn_add_one(double rivel_param_x)") != NULL);
+
+    semantic_result_dispose(result);
+    strbuf_free(&output);
+    error_free(&error);
+    arena_free(&arena);
+}
+
 int main(void) {
     test_c_backend_uses_semantic_queries();
     test_c_backend_emits_runtime_helpers_and_unique_shadowed_locals();
+    test_c_backend_emits_double_types_and_print_helper();
     return 0;
 }
