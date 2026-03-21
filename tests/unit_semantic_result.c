@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "arena.h"
 #include "ast.h"
@@ -97,8 +98,65 @@ static void test_semantic_result_tracks_const_values_and_shadowing(void) {
     arena_free(&arena);
 }
 
+static void test_semantic_result_tracks_double_widening(void) {
+    Arena arena;
+    CompileError error;
+    TokenList tokens;
+    Program program;
+    SemanticResult *result;
+    Decl *global_decl;
+    Decl *double_fn;
+    Decl *main_decl;
+    Stmt *binding_stmt;
+    Type expr_type;
+    ConstValue global_value;
+
+    arena_init(&arena, 4096U);
+    error_init(&error);
+    token_list_init(&tokens, &arena);
+    decl_list_init(&program.decls, &arena);
+
+    assert(tokenize_source(
+        "const BASE: Double = 1 + 2.5\n"
+        "fn widen(x: Double) -> Double { return x + 1 }\n"
+        "fn main() -> Int {\n"
+        "    const value: Double = widen(1)\n"
+        "    print(value == 2.0)\n"
+        "    return 0\n"
+        "}\n",
+        &arena,
+        &tokens,
+        &error));
+    assert(parse_program(&tokens, &arena, &program, &error));
+
+    result = semantic_result_create(&arena, &error);
+    assert(result != NULL);
+    assert(semantic_analyze(&program, result, &error));
+
+    assert(semantic_global_const_value(result, slice_from_cstr("BASE"), &global_value));
+    assert(strcmp(type_display_name(global_value.type), "Double") == 0);
+
+    global_decl = decl_list_get(&program.decls, 0U);
+    assert(semantic_expr_type(result, global_decl->as.global_const.initializer, &expr_type));
+    assert(strcmp(type_display_name(expr_type), "Double") == 0);
+
+    double_fn = decl_list_get(&program.decls, 1U);
+    assert(semantic_expr_type(result, stmt_list_get(&double_fn->as.function.body->statements, 0U)->as.ret.value, &expr_type));
+    assert(strcmp(type_display_name(expr_type), "Double") == 0);
+
+    main_decl = decl_list_get(&program.decls, 2U);
+    binding_stmt = stmt_list_get(&main_decl->as.function.body->statements, 0U);
+    assert(semantic_expr_type(result, binding_stmt->as.binding.initializer, &expr_type));
+    assert(strcmp(type_display_name(expr_type), "Double") == 0);
+
+    semantic_result_dispose(result);
+    error_free(&error);
+    arena_free(&arena);
+}
+
 int main(void) {
     test_semantic_result_tracks_expr_types();
     test_semantic_result_tracks_const_values_and_shadowing();
+    test_semantic_result_tracks_double_widening();
     return 0;
 }

@@ -63,6 +63,9 @@ bool backend_emit_call_stmt(Backend *backend, const Expr *call_expr) {
         if (arg_type.kind == TYPE_BOOL) {
             return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_print_bool(%s);", value));
         }
+        if (arg_type.kind == TYPE_DOUBLE) {
+            return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_print_double(%s);", value));
+        }
         return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_print_int(%s);", value));
     }
     return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s;", backend_emit_expr(backend, call_expr)));

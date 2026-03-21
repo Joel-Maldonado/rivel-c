@@ -1,0 +1,13 @@
+const BASE: Double = 1 + 2.5
+
+fn widen(x: Double) -> Double {
+    return x + 1.25
+}
+
+fn main() -> Int {
+    print(BASE)
+    print(widen(1))
+    print(1 < 2.5)
+    print(1 == 1.0)
+    return 0
+}

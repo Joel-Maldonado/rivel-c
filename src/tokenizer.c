@@ -48,6 +48,7 @@ static const Keyword TOKENIZER_KEYWORDS[] = {
     {"or", TOKEN_KW_OR},
     {"not", TOKEN_KW_NOT},
     {"Int", TOKEN_KW_TYPE_INT},
+    {"Double", TOKEN_KW_TYPE_DOUBLE},
     {"Bool", TOKEN_KW_TYPE_BOOL},
 };
 
@@ -175,17 +176,37 @@ static bool tokenizer_tokenize_identifier(Tokenizer *tokenizer) {
     return tokenizer_add_identifier_like(tokenizer, start, (size_t)(tokenizer->source + tokenizer->index - start), line, column);
 }
 
-static bool tokenizer_tokenize_int(Tokenizer *tokenizer) {
+static bool tokenizer_add_number_token(Tokenizer *tokenizer, const char *start, int line, int column, bool is_double) {
+    size_t len = (size_t)(tokenizer->source + tokenizer->index - start);
+    TokenType type = is_double ? TOKEN_DOUBLE_LITERAL : TOKEN_INT_LITERAL;
+
+    return tokenizer_add_token(tokenizer, type, start, len, line, column);
+}
+
+static bool tokenizer_tokenize_number(Tokenizer *tokenizer) {
     const char *start = tokenizer->source + tokenizer->index;
     int line = tokenizer->line;
     int column = tokenizer->column;
+    bool is_double = false;
 
     tokenizer_advance(tokenizer);
     while (!tokenizer_is_at_end(tokenizer) && isdigit((unsigned char)tokenizer_peek(tokenizer, 0U))) {
         tokenizer_advance(tokenizer);
     }
 
-    return tokenizer_add_token(tokenizer, TOKEN_INT_LITERAL, start, (size_t)(tokenizer->source + tokenizer->index - start), line, column);
+    if (tokenizer_peek(tokenizer, 0U) == '.' && tokenizer_peek(tokenizer, 1U) != '.') {
+        is_double = true;
+        tokenizer_advance(tokenizer);
+        while (!tokenizer_is_at_end(tokenizer) && isdigit((unsigned char)tokenizer_peek(tokenizer, 0U))) {
+            tokenizer_advance(tokenizer);
+        }
+    }
+
+    if (tokenizer_peek(tokenizer, 0U) == 'e' || tokenizer_peek(tokenizer, 0U) == 'E') {
+        return error_set_at(tokenizer->error, "Lexer", line, column, "Exponent notation is not part of Rivel v1 doubles");
+    }
+
+    return tokenizer_add_number_token(tokenizer, start, line, column, is_double);
 }
 
 static bool tokenizer_single(Tokenizer *tokenizer, TokenType type) {
@@ -256,7 +277,7 @@ bool tokenize_source(const char *source, Arena *arena, TokenList *out_tokens, Co
             continue;
         }
         if (isdigit((unsigned char)current)) {
-            if (!tokenizer_tokenize_int(&tokenizer)) {
+            if (!tokenizer_tokenize_number(&tokenizer)) {
                 return false;
             }
             continue;

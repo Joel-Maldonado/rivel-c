@@ -26,7 +26,7 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
             return false;
         }
         binding_type = stmt->as.binding.has_annotation ? stmt->as.binding.annotation : initializer_type;
-        if (stmt->as.binding.has_annotation && !type_equal(stmt->as.binding.annotation, initializer_type)) {
+        if (stmt->as.binding.has_annotation && !type_can_widen_to(initializer_type, stmt->as.binding.annotation)) {
             return error_set_at(
                 analyzer->error,
                 "Semantic",
@@ -56,7 +56,7 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
         if (!analyzer_analyze_expr(analyzer, stmt->as.assign.value, &value_type)) {
             return false;
         }
-        if (!type_equal(value_type, binding->type)) {
+        if (!type_can_widen_to(value_type, binding->type)) {
             return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Cannot assign value of type %s to %s", type_display_name(value_type), type_display_name(binding->type));
         }
         return true;
@@ -67,7 +67,7 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
         if (!analyzer_analyze_expr(analyzer, stmt->as.ret.value, &value_type)) {
             return false;
         }
-        if (!type_equal(value_type, function_return_type)) {
+        if (!type_can_widen_to(value_type, function_return_type)) {
             return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Return type mismatch: expected %s but got %s", type_display_name(function_return_type), type_display_name(value_type));
         }
         return true;

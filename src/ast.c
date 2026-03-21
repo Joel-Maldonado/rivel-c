@@ -72,6 +72,8 @@ const char *type_display_name(Type type) {
     switch (type.kind) {
         case TYPE_INT:
             return "Int";
+        case TYPE_DOUBLE:
+            return "Double";
         case TYPE_BOOL:
             return "Bool";
     }
@@ -81,6 +83,17 @@ const char *type_display_name(Type type) {
 
 bool type_equal(Type lhs, Type rhs) {
     return lhs.kind == rhs.kind;
+}
+
+bool type_is_numeric(Type type) {
+    return type.kind == TYPE_INT || type.kind == TYPE_DOUBLE;
+}
+
+bool type_can_widen_to(Type source, Type target) {
+    if (type_equal(source, target)) {
+        return true;
+    }
+    return source.kind == TYPE_INT && target.kind == TYPE_DOUBLE;
 }
 
 void expr_list_init(ExprList *list, Arena *arena) {

@@ -9,6 +9,7 @@
 
 typedef enum {
     TYPE_INT,
+    TYPE_DOUBLE,
     TYPE_BOOL
 } TypeKind;
 
@@ -18,6 +19,8 @@ typedef struct {
 
 const char *type_display_name(Type type);
 bool type_equal(Type lhs, Type rhs);
+bool type_is_numeric(Type type);
+bool type_can_widen_to(Type source, Type target);
 
 typedef struct Expr Expr;
 typedef struct Stmt Stmt;
@@ -48,6 +51,7 @@ typedef struct DeclList {
 
 typedef enum {
     EXPR_INT,
+    EXPR_DOUBLE,
     EXPR_BOOL,
     EXPR_NAME,
     EXPR_UNARY,
@@ -60,6 +64,7 @@ struct Expr {
     Token token;
     union {
         int64_t int_value;
+        double double_value;
         bool bool_value;
         StrSlice name;
         struct {
