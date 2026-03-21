@@ -2,6 +2,8 @@
 #define RIVEL_BACKEND_C_INTERNAL_H
 
 #include "backend_c.h"
+#include "map.h"
+#include "vec.h"
 
 typedef struct {
     const char *c_name;

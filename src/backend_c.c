@@ -46,7 +46,7 @@ static bool backend_emit_struct_retain_body(Backend *backend, const Decl *decl, 
 }
 
 static bool backend_emit_struct_take_field_helper(Backend *backend, const Decl *decl, const StructFieldDecl *field) {
-    Type struct_type = {.kind = TYPE_STRUCT, .struct_name = decl->name};
+    Type struct_type = type_make_struct(decl->name, NULL);
 
     if (!backend_emit_line(backend,
                            arena_printf(backend->arena,
@@ -81,7 +81,7 @@ static bool backend_emit_struct_take_field_helper(Backend *backend, const Decl *
 }
 
 static bool backend_emit_struct_helpers(Backend *backend, const Decl *decl) {
-    Type struct_type = {.kind = TYPE_STRUCT, .struct_name = decl->name};
+    Type struct_type = type_make_struct(decl->name, NULL);
     size_t field_index = 0U;
 
     if (!backend_type_contains_owned_strings(backend, struct_type)) {

@@ -116,36 +116,30 @@ bool parser_consume_decl_end(Parser *parser) {
 
 bool parser_parse_type(Parser *parser, Type *out_type) {
     if (parser_match(parser, TOKEN_KW_TYPE_INT)) {
-        out_type->kind = TYPE_INT;
-        out_type->struct_name = slice_from_parts(NULL, 0U);
-        out_type->struct_name_cstr = NULL;
+        *out_type = type_make_int();
         return true;
     }
     if (parser_match(parser, TOKEN_KW_TYPE_DOUBLE)) {
-        out_type->kind = TYPE_DOUBLE;
-        out_type->struct_name = slice_from_parts(NULL, 0U);
-        out_type->struct_name_cstr = NULL;
+        *out_type = type_make_double();
         return true;
     }
     if (parser_match(parser, TOKEN_KW_TYPE_BOOL)) {
-        out_type->kind = TYPE_BOOL;
-        out_type->struct_name = slice_from_parts(NULL, 0U);
-        out_type->struct_name_cstr = NULL;
+        *out_type = type_make_bool();
         return true;
     }
     if (parser_match(parser, TOKEN_KW_TYPE_STRING)) {
-        out_type->kind = TYPE_STRING;
-        out_type->struct_name = slice_from_parts(NULL, 0U);
-        out_type->struct_name_cstr = NULL;
+        *out_type = type_make_string();
         return true;
     }
     if (parser_is(parser, TOKEN_IDENTIFIER, 0U)) {
         const Token *token = parser_advance(parser);
+        const char *type_name = arena_copy_slice(parser->arena, token->lexeme, parser->error);
 
-        out_type->kind = TYPE_STRUCT;
-        out_type->struct_name = token->lexeme;
-        out_type->struct_name_cstr = arena_copy_slice(parser->arena, token->lexeme, parser->error);
-        return out_type->struct_name_cstr != NULL;
+        if (type_name == NULL) {
+            return false;
+        }
+        *out_type = type_make_struct(token->lexeme, type_name);
+        return true;
     }
     return error_set_at(parser->error, "Parse", parser_peek(parser, 0U)->line, parser_peek(parser, 0U)->column, "Expected a type name");
 }

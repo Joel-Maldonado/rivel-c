@@ -1,24 +1,11 @@
 #ifndef RIVEL_SEMANTIC_H
 #define RIVEL_SEMANTIC_H
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include "arena.h"
 #include "ast.h"
 #include "error.h"
-#include "map.h"
-#include "vec.h"
 
 typedef struct SemanticResult SemanticResult;
-
-typedef struct {
-    Type type;
-    int64_t int_value;
-    double double_value;
-    bool bool_value;
-    StrSlice string_value;
-} ConstValue;
 
 typedef struct {
     const Decl *decl;

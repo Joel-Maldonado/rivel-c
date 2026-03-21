@@ -1,7 +1,9 @@
 #ifndef RIVEL_SEMANTIC_INTERNAL_H
 #define RIVEL_SEMANTIC_INTERNAL_H
 
+#include "map.h"
 #include "semantic.h"
+#include "vec.h"
 
 typedef enum {
     GLOBAL_UNVISITED = 0,
@@ -27,16 +29,6 @@ typedef struct {
 } ScopeStack;
 
 typedef struct {
-    const Expr *expr;
-    Type type;
-} ExprTypeEntry;
-
-typedef struct {
-    const Expr *expr;
-    ConstValue value;
-} ExprConstEntry;
-
-typedef struct {
     SemanticGlobalInfo info;
     GlobalVisitState visit_state;
 } SemanticGlobalRecord;
@@ -58,14 +50,6 @@ typedef struct {
 } SemanticBuiltinTable;
 
 typedef struct {
-    Vec storage;
-} ExprTypeTable;
-
-typedef struct {
-    Vec storage;
-} ExprConstTable;
-
-typedef struct {
     StringMap storage;
 } SemanticSymbolTable;
 
@@ -79,8 +63,6 @@ struct SemanticResult {
     SemanticSymbolTable function_names;
     SemanticSymbolTable struct_names;
     SemanticSymbolTable builtin_names;
-    ExprTypeTable expr_types;
-    ExprConstTable expr_consts;
 };
 
 typedef struct {
@@ -92,10 +74,6 @@ typedef struct {
 
 uintptr_t semantic_index_value(size_t index);
 size_t semantic_map_index(uintptr_t value);
-ConstValue semantic_make_int(int64_t value);
-ConstValue semantic_make_double(double value);
-ConstValue semantic_make_bool(bool value);
-ConstValue semantic_make_string(StrSlice value);
 
 void binding_table_init(BindingTable *table);
 void binding_table_free(BindingTable *table);
@@ -139,18 +117,6 @@ void semantic_builtin_table_init(SemanticBuiltinTable *table, Arena *arena);
 size_t semantic_builtin_table_len(const SemanticBuiltinTable *table);
 SemanticBuiltinInfo *semantic_builtin_table_push(SemanticBuiltinTable *table, CompileError *error);
 const SemanticBuiltinInfo *semantic_builtin_table_get_const(const SemanticBuiltinTable *table, size_t index);
-
-void expr_type_table_init(ExprTypeTable *table, Arena *arena);
-size_t expr_type_table_len(const ExprTypeTable *table);
-ExprTypeEntry *expr_type_table_push(ExprTypeTable *table, CompileError *error);
-ExprTypeEntry *expr_type_table_get(ExprTypeTable *table, size_t index);
-const ExprTypeEntry *expr_type_table_get_const(const ExprTypeTable *table, size_t index);
-
-void expr_const_table_init(ExprConstTable *table, Arena *arena);
-size_t expr_const_table_len(const ExprConstTable *table);
-ExprConstEntry *expr_const_table_push(ExprConstTable *table, CompileError *error);
-ExprConstEntry *expr_const_table_get(ExprConstTable *table, size_t index);
-const ExprConstEntry *expr_const_table_get_const(const ExprConstTable *table, size_t index);
 
 bool semantic_record_expr_type(SemanticResult *result, const Expr *expr, Type type, CompileError *error);
 bool semantic_record_expr_const(SemanticResult *result, const Expr *expr, ConstValue value, CompileError *error);

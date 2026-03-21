@@ -70,6 +70,40 @@ DEFINE_AST_LIST_FUNCS(ParamList, Param, param_list, param_list_get, param_list_g
 DEFINE_AST_LIST_FUNCS(StructFieldDeclList, StructFieldDecl, struct_field_decl_list, struct_field_decl_list_get, struct_field_decl_list_get_const)
 DEFINE_AST_LIST_FUNCS(StructLiteralFieldList, StructLiteralField, struct_literal_field_list, struct_literal_field_list_get, struct_literal_field_list_get_const)
 
+static Type type_make_simple(TypeKind kind) {
+    Type type;
+
+    type.kind = kind;
+    type.struct_name = slice_from_parts(NULL, 0U);
+    type.struct_name_cstr = NULL;
+    return type;
+}
+
+Type type_make_int(void) {
+    return type_make_simple(TYPE_INT);
+}
+
+Type type_make_double(void) {
+    return type_make_simple(TYPE_DOUBLE);
+}
+
+Type type_make_bool(void) {
+    return type_make_simple(TYPE_BOOL);
+}
+
+Type type_make_string(void) {
+    return type_make_simple(TYPE_STRING);
+}
+
+Type type_make_struct(StrSlice struct_name, const char *struct_name_cstr) {
+    Type type;
+
+    type.kind = TYPE_STRUCT;
+    type.struct_name = struct_name;
+    type.struct_name_cstr = struct_name_cstr;
+    return type;
+}
+
 const char *type_display_name(Type type) {
     switch (type.kind) {
         case TYPE_INT:
@@ -106,6 +140,80 @@ bool type_can_widen_to(Type source, Type target) {
         return true;
     }
     return source.kind == TYPE_INT && target.kind == TYPE_DOUBLE;
+}
+
+ConstValue const_value_make_int(int64_t value) {
+    ConstValue out;
+
+    out.type = type_make_int();
+    out.int_value = value;
+    out.double_value = 0.0;
+    out.bool_value = false;
+    out.string_value = slice_from_parts(NULL, 0U);
+    return out;
+}
+
+ConstValue const_value_make_double(double value) {
+    ConstValue out;
+
+    out.type = type_make_double();
+    out.int_value = 0;
+    out.double_value = value;
+    out.bool_value = false;
+    out.string_value = slice_from_parts(NULL, 0U);
+    return out;
+}
+
+ConstValue const_value_make_bool(bool value) {
+    ConstValue out;
+
+    out.type = type_make_bool();
+    out.int_value = 0;
+    out.double_value = 0.0;
+    out.bool_value = value;
+    out.string_value = slice_from_parts(NULL, 0U);
+    return out;
+}
+
+ConstValue const_value_make_string(StrSlice value) {
+    ConstValue out;
+
+    out.type = type_make_string();
+    out.int_value = 0;
+    out.double_value = 0.0;
+    out.bool_value = false;
+    out.string_value = value;
+    return out;
+}
+
+void expr_set_resolved_type(Expr *expr, Type type) {
+    expr->semantics.has_type = true;
+    expr->semantics.type = type;
+}
+
+bool expr_resolved_type(const Expr *expr, Type *out_type) {
+    if (!expr->semantics.has_type) {
+        return false;
+    }
+    if (out_type != NULL) {
+        *out_type = expr->semantics.type;
+    }
+    return true;
+}
+
+void expr_set_const_value(Expr *expr, ConstValue value) {
+    expr->semantics.has_const_value = true;
+    expr->semantics.const_value = value;
+}
+
+bool expr_const_value(const Expr *expr, ConstValue *out_value) {
+    if (!expr->semantics.has_const_value) {
+        return false;
+    }
+    if (out_value != NULL) {
+        *out_value = expr->semantics.const_value;
+    }
+    return true;
 }
 
 void expr_list_init(ExprList *list, Arena *arena) {

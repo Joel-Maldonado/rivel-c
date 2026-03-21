@@ -51,9 +51,9 @@ static bool analyzer_builtin_require_arg_type(Analyzer *analyzer, const Expr *ca
 }
 
 static bool analyzer_analyze_binary_expr(Analyzer *analyzer, Token token, TokenType op, Type lhs, Type rhs, Type *out_type) {
-    Type int_type = {.kind = TYPE_INT};
-    Type bool_type = {.kind = TYPE_BOOL};
-    Type string_type = {.kind = TYPE_STRING};
+    Type int_type = type_make_int();
+    Type bool_type = type_make_bool();
+    Type string_type = type_make_string();
 
     switch (op) {
         case TOKEN_PLUS:
@@ -112,8 +112,8 @@ static bool analyzer_analyze_binary_expr(Analyzer *analyzer, Token token, TokenT
 }
 
 static bool analyzer_analyze_builtin_call(Analyzer *analyzer, const Expr *call_expr, SemanticBuiltinInfo builtin, bool allow_statement_only_builtins, Type *out_type) {
-    Type int_type = {.kind = TYPE_INT};
-    Type string_type = {.kind = TYPE_STRING};
+    Type int_type = type_make_int();
+    Type string_type = type_make_string();
     Type arg_type;
 
     if (builtin.kind == BUILTIN_PRINT) {
@@ -129,7 +129,7 @@ static bool analyzer_analyze_builtin_call(Analyzer *analyzer, const Expr *call_e
         if (arg_type.kind != TYPE_INT && arg_type.kind != TYPE_DOUBLE && arg_type.kind != TYPE_BOOL && arg_type.kind != TYPE_STRING) {
             return error_set_at(analyzer->error, "Semantic", call_expr->token.line, call_expr->token.column, "Builtin `print` does not support argument type %s", type_display_name(arg_type));
         }
-        out_type->kind = TYPE_INT;
+        *out_type = type_make_int();
         return true;
     }
     if (builtin.kind == BUILTIN_LEN) {
@@ -161,7 +161,7 @@ static bool analyzer_analyze_builtin_call(Analyzer *analyzer, const Expr *call_e
             || !analyzer_builtin_require_arg_type(analyzer, call_expr, 1U, string_type, &rhs_type)) {
             return false;
         }
-        out_type->kind = TYPE_BOOL;
+        *out_type = type_make_bool();
         return true;
     }
 
@@ -220,13 +220,13 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
     }
 
     if (expr->kind == EXPR_INT) {
-        out_type->kind = TYPE_INT;
+        *out_type = type_make_int();
     } else if (expr->kind == EXPR_DOUBLE) {
-        out_type->kind = TYPE_DOUBLE;
+        *out_type = type_make_double();
     } else if (expr->kind == EXPR_BOOL) {
-        out_type->kind = TYPE_BOOL;
+        *out_type = type_make_bool();
     } else if (expr->kind == EXPR_STRING) {
-        out_type->kind = TYPE_STRING;
+        *out_type = type_make_string();
     } else if (expr->kind == EXPR_NAME) {
         const BindingInfo *binding = analyzer_resolve_local(analyzer, expr->as.name);
         const SemanticGlobalInfo *global;
@@ -338,12 +338,12 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
                 decl_index += 1U;
             }
         }
-        out_type->kind = TYPE_STRUCT;
-        out_type->struct_name = expr->as.struct_literal.struct_name;
-        out_type->struct_name_cstr = arena_copy_slice(analyzer->result->arena, expr->as.struct_literal.struct_name, analyzer->error);
-        if (out_type->struct_name_cstr == NULL) {
+        const char *struct_name = arena_copy_slice(analyzer->result->arena, expr->as.struct_literal.struct_name, analyzer->error);
+
+        if (struct_name == NULL) {
             return false;
         }
+        *out_type = type_make_struct(expr->as.struct_literal.struct_name, struct_name);
     } else if (expr->kind == EXPR_FIELD) {
         Type base_type;
         const SemanticStructInfo *struct_info;
@@ -387,7 +387,7 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
             if (operand_type.kind != TYPE_BOOL) {
                 return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "`not` expects Bool");
             }
-            out_type->kind = TYPE_BOOL;
+            *out_type = type_make_bool();
         }
     } else if (expr->kind == EXPR_BINARY) {
         Type lhs;

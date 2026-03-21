@@ -163,7 +163,7 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
     if (stmt->kind == STMT_FOR_RANGE) {
         Type start_type;
         Type end_type;
-        Type int_type;
+        Type int_type = type_make_int();
 
         if (!analyzer_analyze_expr(analyzer, stmt->as.for_range.start, &start_type)) {
             return false;
@@ -177,8 +177,6 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
         if (end_type.kind != TYPE_INT) {
             return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "For range end must be Int");
         }
-
-        int_type.kind = TYPE_INT;
         if (!analyzer_push_scope(analyzer)) {
             return false;
         }
@@ -269,7 +267,7 @@ bool analyzer_validate_main_signature(Analyzer *analyzer) {
     if (param_list_len(&main_fn->decl->as.function.params) != 0U) {
         return error_set_at(analyzer->error, "Semantic", main_fn->decl->token.line, main_fn->decl->token.column, "`main` must not take parameters");
     }
-    if (main_fn->decl->as.function.return_type.kind != TYPE_INT) {
+    if (!type_equal(main_fn->decl->as.function.return_type, type_make_int())) {
         return error_set_at(analyzer->error, "Semantic", main_fn->decl->token.line, main_fn->decl->token.column, "`main` must return Int");
     }
     return true;

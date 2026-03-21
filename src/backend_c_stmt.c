@@ -101,7 +101,7 @@ bool backend_emit_call_stmt(Backend *backend, const Expr *call_expr) {
         if (value == NULL) {
             return false;
         }
-        if (!semantic_expr_type(backend->semantics, arg, &arg_type)) {
+        if (!expr_resolved_type(arg, &arg_type)) {
             return error_set(backend->error, "Backend", "Internal error: missing semantic type for builtin print argument");
         }
         if (arg_type.kind == TYPE_BOOL) {
@@ -287,14 +287,13 @@ bool backend_emit_stmt(Backend *backend, const Stmt *stmt) {
         return backend_emit_line(backend, "}");
     }
     if (stmt->kind == STMT_FOR_RANGE) {
-        Type int_type;
+        Type int_type = type_make_int();
         char *start_value = backend_emit_expr(backend, stmt->as.for_range.start);
         char *end_value = backend_emit_expr(backend, stmt->as.for_range.end);
         char *start_name = backend_range_name(backend, "start");
         char *end_name = backend_range_name(backend, "end");
         char *loop_name = backend_local_name(backend, stmt->as.for_range.name);
 
-        int_type.kind = TYPE_INT;
         if (start_value == NULL || end_value == NULL || start_name == NULL || end_name == NULL || loop_name == NULL) {
             return false;
         }

@@ -18,7 +18,7 @@ static ConstValue const_value_coerce(ConstValue value, Type target) {
         return value;
     }
     if (value.type.kind == TYPE_INT && target.kind == TYPE_DOUBLE) {
-        return semantic_make_double((double)value.int_value);
+        return const_value_make_double((double)value.int_value);
     }
     return value;
 }
@@ -151,8 +151,8 @@ static bool semantic_record_const_result(Analyzer *analyzer, const Expr *expr, C
 }
 
 static bool analyzer_evaluate_builtin_const_expr(Analyzer *analyzer, const Expr *call_expr, BuiltinKind builtin_kind, ConstValue *out_value) {
-    Type int_type = {.kind = TYPE_INT};
-    Type string_type = {.kind = TYPE_STRING};
+    Type int_type = type_make_int();
+    Type string_type = type_make_string();
     ConstValue arg0;
     ConstValue arg1;
     ConstValue arg2;
@@ -166,7 +166,7 @@ static bool analyzer_evaluate_builtin_const_expr(Analyzer *analyzer, const Expr 
                 || !semantic_const_require_arg_type(analyzer, call_expr, 0U, string_type, &arg0)) {
                 return false;
             }
-            return semantic_record_const_result(analyzer, call_expr, semantic_make_int((int64_t)arg0.string_value.len), out_value);
+            return semantic_record_const_result(analyzer, call_expr, const_value_make_int((int64_t)arg0.string_value.len), out_value);
         case BUILTIN_SUBSTR:
             if (!semantic_const_expect_builtin_arg_count(analyzer, call_expr, 3U)
                 || !semantic_const_require_arg_type(analyzer, call_expr, 0U, string_type, &arg0)
@@ -175,28 +175,28 @@ static bool analyzer_evaluate_builtin_const_expr(Analyzer *analyzer, const Expr 
                 || !semantic_const_substr(analyzer, call_expr->token, arg0.string_value, arg1.int_value, arg2.int_value, &substr_value)) {
                 return false;
             }
-            return semantic_record_const_result(analyzer, call_expr, semantic_make_string(substr_value), out_value);
+            return semantic_record_const_result(analyzer, call_expr, const_value_make_string(substr_value), out_value);
         case BUILTIN_CONTAINS:
             if (!semantic_const_expect_builtin_arg_count(analyzer, call_expr, 2U)
                 || !semantic_const_require_arg_type(analyzer, call_expr, 0U, string_type, &arg0)
                 || !semantic_const_require_arg_type(analyzer, call_expr, 1U, string_type, &arg1)) {
                 return false;
             }
-            return semantic_record_const_result(analyzer, call_expr, semantic_make_bool(semantic_const_contains(arg0.string_value, arg1.string_value)), out_value);
+            return semantic_record_const_result(analyzer, call_expr, const_value_make_bool(semantic_const_contains(arg0.string_value, arg1.string_value)), out_value);
         case BUILTIN_STARTS_WITH:
             if (!semantic_const_expect_builtin_arg_count(analyzer, call_expr, 2U)
                 || !semantic_const_require_arg_type(analyzer, call_expr, 0U, string_type, &arg0)
                 || !semantic_const_require_arg_type(analyzer, call_expr, 1U, string_type, &arg1)) {
                 return false;
             }
-            return semantic_record_const_result(analyzer, call_expr, semantic_make_bool(semantic_const_starts_with(arg0.string_value, arg1.string_value)), out_value);
+            return semantic_record_const_result(analyzer, call_expr, const_value_make_bool(semantic_const_starts_with(arg0.string_value, arg1.string_value)), out_value);
         case BUILTIN_ENDS_WITH:
             if (!semantic_const_expect_builtin_arg_count(analyzer, call_expr, 2U)
                 || !semantic_const_require_arg_type(analyzer, call_expr, 0U, string_type, &arg0)
                 || !semantic_const_require_arg_type(analyzer, call_expr, 1U, string_type, &arg1)) {
                 return false;
             }
-            return semantic_record_const_result(analyzer, call_expr, semantic_make_bool(semantic_const_ends_with(arg0.string_value, arg1.string_value)), out_value);
+            return semantic_record_const_result(analyzer, call_expr, const_value_make_bool(semantic_const_ends_with(arg0.string_value, arg1.string_value)), out_value);
     }
 
     return error_set_at(analyzer->error, "Semantic", call_expr->token.line, call_expr->token.column, "Unknown builtin `%.*s`", (int)call_expr->as.call.callee.len, call_expr->as.call.callee.data);
@@ -258,15 +258,15 @@ static bool analyzer_evaluate_binary_const_expr(Analyzer *analyzer, const Expr *
                 if (!semantic_const_concat_strings(analyzer, lhs.string_value, rhs.string_value, &concat_value)) {
                     return false;
                 }
-                return semantic_record_const_result(analyzer, expr, semantic_make_string(concat_value), out_value);
+                return semantic_record_const_result(analyzer, expr, const_value_make_string(concat_value), out_value);
             }
             if (!const_value_is_numeric(lhs) || !const_value_is_numeric(rhs)) {
                 return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Operator %s expects numeric operands or String operands", token_name(expr->as.binary.op));
             }
             if (lhs.type.kind == TYPE_INT && rhs.type.kind == TYPE_INT) {
-                return semantic_record_const_result(analyzer, expr, semantic_make_int(lhs.int_value + rhs.int_value), out_value);
+                return semantic_record_const_result(analyzer, expr, const_value_make_int(lhs.int_value + rhs.int_value), out_value);
             }
-            return semantic_record_const_result(analyzer, expr, semantic_make_double(const_value_as_double(lhs) + const_value_as_double(rhs)), out_value);
+            return semantic_record_const_result(analyzer, expr, const_value_make_double(const_value_as_double(lhs) + const_value_as_double(rhs)), out_value);
         case TOKEN_MINUS:
         case TOKEN_STAR:
             if (!const_value_is_numeric(lhs) || !const_value_is_numeric(rhs)) {
@@ -274,14 +274,14 @@ static bool analyzer_evaluate_binary_const_expr(Analyzer *analyzer, const Expr *
             }
             if (lhs.type.kind == TYPE_INT && rhs.type.kind == TYPE_INT) {
                 if (expr->as.binary.op == TOKEN_MINUS) {
-                    return semantic_record_const_result(analyzer, expr, semantic_make_int(lhs.int_value - rhs.int_value), out_value);
+                    return semantic_record_const_result(analyzer, expr, const_value_make_int(lhs.int_value - rhs.int_value), out_value);
                 }
-                return semantic_record_const_result(analyzer, expr, semantic_make_int(lhs.int_value * rhs.int_value), out_value);
+                return semantic_record_const_result(analyzer, expr, const_value_make_int(lhs.int_value * rhs.int_value), out_value);
             }
             if (expr->as.binary.op == TOKEN_MINUS) {
-                return semantic_record_const_result(analyzer, expr, semantic_make_double(const_value_as_double(lhs) - const_value_as_double(rhs)), out_value);
+                return semantic_record_const_result(analyzer, expr, const_value_make_double(const_value_as_double(lhs) - const_value_as_double(rhs)), out_value);
             }
-            return semantic_record_const_result(analyzer, expr, semantic_make_double(const_value_as_double(lhs) * const_value_as_double(rhs)), out_value);
+            return semantic_record_const_result(analyzer, expr, const_value_make_double(const_value_as_double(lhs) * const_value_as_double(rhs)), out_value);
         case TOKEN_SLASH:
             if (!const_value_is_numeric(lhs) || !const_value_is_numeric(rhs)) {
                 return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Arithmetic operators expect numeric operands");
@@ -290,9 +290,9 @@ static bool analyzer_evaluate_binary_const_expr(Analyzer *analyzer, const Expr *
                 if (rhs.int_value == 0) {
                     return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Division by zero in constant expression");
                 }
-                return semantic_record_const_result(analyzer, expr, semantic_make_int(lhs.int_value / rhs.int_value), out_value);
+                return semantic_record_const_result(analyzer, expr, const_value_make_int(lhs.int_value / rhs.int_value), out_value);
             }
-            return semantic_record_const_result(analyzer, expr, semantic_make_double(const_value_as_double(lhs) / const_value_as_double(rhs)), out_value);
+            return semantic_record_const_result(analyzer, expr, const_value_make_double(const_value_as_double(lhs) / const_value_as_double(rhs)), out_value);
         case TOKEN_PERCENT:
             if (lhs.type.kind != TYPE_INT || rhs.type.kind != TYPE_INT) {
                 return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Arithmetic operators expect Int operands");
@@ -300,7 +300,7 @@ static bool analyzer_evaluate_binary_const_expr(Analyzer *analyzer, const Expr *
             if (rhs.int_value == 0) {
                 return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Division by zero in constant expression");
             }
-            return semantic_record_const_result(analyzer, expr, semantic_make_int(lhs.int_value % rhs.int_value), out_value);
+            return semantic_record_const_result(analyzer, expr, const_value_make_int(lhs.int_value % rhs.int_value), out_value);
         case TOKEN_LESS:
         case TOKEN_LESS_EQ:
         case TOKEN_GREATER:
@@ -332,7 +332,7 @@ static bool analyzer_evaluate_binary_const_expr(Analyzer *analyzer, const Expr *
                     bool_result = lhs_value >= rhs_value;
                 }
             }
-            return semantic_record_const_result(analyzer, expr, semantic_make_bool(bool_result), out_value);
+            return semantic_record_const_result(analyzer, expr, const_value_make_bool(bool_result), out_value);
         case TOKEN_EQ_EQ:
         case TOKEN_BANG_EQ:
             if (lhs.type.kind == TYPE_STRUCT || rhs.type.kind == TYPE_STRUCT) {
@@ -353,7 +353,7 @@ static bool analyzer_evaluate_binary_const_expr(Analyzer *analyzer, const Expr *
             if (expr->as.binary.op == TOKEN_BANG_EQ) {
                 bool_result = !bool_result;
             }
-            return semantic_record_const_result(analyzer, expr, semantic_make_bool(bool_result), out_value);
+            return semantic_record_const_result(analyzer, expr, const_value_make_bool(bool_result), out_value);
         default:
             return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Unsupported constant expression");
     }
@@ -365,16 +365,16 @@ bool analyzer_evaluate_const_expr(Analyzer *analyzer, const Expr *expr, ConstVal
     }
 
     if (expr->kind == EXPR_INT) {
-        return semantic_record_const_result(analyzer, expr, semantic_make_int(expr->as.int_value), out_value);
+        return semantic_record_const_result(analyzer, expr, const_value_make_int(expr->as.int_value), out_value);
     }
     if (expr->kind == EXPR_DOUBLE) {
-        return semantic_record_const_result(analyzer, expr, semantic_make_double(expr->as.double_value), out_value);
+        return semantic_record_const_result(analyzer, expr, const_value_make_double(expr->as.double_value), out_value);
     }
     if (expr->kind == EXPR_BOOL) {
-        return semantic_record_const_result(analyzer, expr, semantic_make_bool(expr->as.bool_value), out_value);
+        return semantic_record_const_result(analyzer, expr, const_value_make_bool(expr->as.bool_value), out_value);
     }
     if (expr->kind == EXPR_STRING) {
-        return semantic_record_const_result(analyzer, expr, semantic_make_string(expr->as.string_value), out_value);
+        return semantic_record_const_result(analyzer, expr, const_value_make_string(expr->as.string_value), out_value);
     }
     if (expr->kind == EXPR_NAME) {
         ConstValue value;
@@ -412,14 +412,14 @@ bool analyzer_evaluate_const_expr(Analyzer *analyzer, const Expr *expr, ConstVal
                 return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Unary `-` expects Int or Double");
             }
             if (operand.type.kind == TYPE_INT) {
-                return semantic_record_const_result(analyzer, expr, semantic_make_int(-operand.int_value), out_value);
+                return semantic_record_const_result(analyzer, expr, const_value_make_int(-operand.int_value), out_value);
             }
-            return semantic_record_const_result(analyzer, expr, semantic_make_double(-operand.double_value), out_value);
+            return semantic_record_const_result(analyzer, expr, const_value_make_double(-operand.double_value), out_value);
         }
-        if (!analyzer_require_type(analyzer, expr->token, operand.type, (Type){.kind = TYPE_BOOL}, "`not` expects Bool")) {
+        if (!analyzer_require_type(analyzer, expr->token, operand.type, type_make_bool(), "`not` expects Bool")) {
             return false;
         }
-        return semantic_record_const_result(analyzer, expr, semantic_make_bool(!operand.bool_value), out_value);
+        return semantic_record_const_result(analyzer, expr, const_value_make_bool(!operand.bool_value), out_value);
     }
     if (expr->kind == EXPR_BINARY) {
         ConstValue lhs;
@@ -432,16 +432,16 @@ bool analyzer_evaluate_const_expr(Analyzer *analyzer, const Expr *expr, ConstVal
             return false;
         }
         if (expr->as.binary.op == TOKEN_KW_AND || expr->as.binary.op == TOKEN_KW_OR) {
-            if (!analyzer_require_type(analyzer, expr->token, lhs.type, (Type){.kind = TYPE_BOOL}, expr->as.binary.op == TOKEN_KW_AND ? "`and` expects Bool operands" : "`or` expects Bool operands")) {
+            if (!analyzer_require_type(analyzer, expr->token, lhs.type, type_make_bool(), expr->as.binary.op == TOKEN_KW_AND ? "`and` expects Bool operands" : "`or` expects Bool operands")) {
                 return false;
             }
-            if (!analyzer_require_type(analyzer, expr->token, rhs.type, (Type){.kind = TYPE_BOOL}, expr->as.binary.op == TOKEN_KW_AND ? "`and` expects Bool operands" : "`or` expects Bool operands")) {
+            if (!analyzer_require_type(analyzer, expr->token, rhs.type, type_make_bool(), expr->as.binary.op == TOKEN_KW_AND ? "`and` expects Bool operands" : "`or` expects Bool operands")) {
                 return false;
             }
             return semantic_record_const_result(
                 analyzer,
                 expr,
-                semantic_make_bool(expr->as.binary.op == TOKEN_KW_AND ? (lhs.bool_value && rhs.bool_value) : (lhs.bool_value || rhs.bool_value)),
+                const_value_make_bool(expr->as.binary.op == TOKEN_KW_AND ? (lhs.bool_value && rhs.bool_value) : (lhs.bool_value || rhs.bool_value)),
                 out_value);
         }
         return analyzer_evaluate_binary_const_expr(analyzer, expr, lhs, rhs, out_value);

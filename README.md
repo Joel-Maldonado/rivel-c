@@ -144,10 +144,16 @@ The language is tiny and not developed yet. Some important limits:
 
 ## Testing
 
-To test if the compiled rivel compiler is working properly:
+To run the language and integration suite against the compiled compiler:
 
 ```bash
 bash tests/run_tests.sh
+```
+
+To run the C unit tests for the compiler implementation itself:
+
+```bash
+bash tests/run_unit_tests.sh
 ```
 
 ## If You Want To Poke Around The Compiler
@@ -156,6 +162,7 @@ The compiler is laid out as a pretty direct staged pipeline:
 
 - `src/tokenizer.c`: lexical analysis and separator/comment handling
 - `src/parser*.c`: declarations, statements, and expression parsing
-- `src/semantic*.c`: name resolution, type checking, constant evaluation, and entrypoint validation
-- `src/backend_c*.c`: C code generation and runtime helpers
-- `src/driver.c` and `src/main.c`: file I/O, CLI handling, generated-C emission, and host compiler invocation
+- `src/ast.c` / `src/ast.h`: syntax tree types plus semantic annotations attached to expressions
+- `src/semantic*.c`: declaration collection, scope handling, name resolution, type checking, constant evaluation, and entrypoint validation
+- `src/backend_c*.c`: C code generation, naming/lifetime helpers, and runtime emission
+- `src/driver*.c` and `src/main.c`: CLI handling, pipeline orchestration, file I/O, generated-C emission, and host compiler invocation

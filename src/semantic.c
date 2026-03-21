@@ -12,8 +12,6 @@ SemanticResult *semantic_result_create(Arena *arena, CompileError *error) {
     semantic_function_table_init(&result->functions, arena);
     semantic_struct_table_init(&result->structs, arena);
     semantic_builtin_table_init(&result->builtins, arena);
-    expr_type_table_init(&result->expr_types, arena);
-    expr_const_table_init(&result->expr_consts, arena);
     semantic_symbol_table_init(&result->global_names);
     semantic_symbol_table_init(&result->function_names);
     semantic_symbol_table_init(&result->struct_names);
@@ -129,9 +127,11 @@ bool semantic_global_const_value(const SemanticResult *result, StrSlice name, Co
 }
 
 bool semantic_expr_type(const SemanticResult *result, const Expr *expr, Type *out_type) {
-    return semantic_lookup_recorded_expr_type(result, expr, out_type);
+    (void)result;
+    return expr_resolved_type(expr, out_type);
 }
 
 bool semantic_expr_const_value(const SemanticResult *result, const Expr *expr, ConstValue *out_value) {
-    return semantic_lookup_recorded_expr_const(result, expr, out_value);
+    (void)result;
+    return expr_const_value(expr, out_value);
 }

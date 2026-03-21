@@ -30,7 +30,7 @@ static char *backend_emit_struct_literal_expr(Backend *backend, const Expr *expr
     if (!strbuf_append_fmt(&buf,
                            backend->error,
                            "((%s){",
-                           backend_c_type(backend, (Type){.kind = TYPE_STRUCT, .struct_name = expr->as.struct_literal.struct_name}))) {
+                           backend_c_type(backend, type_make_struct(expr->as.struct_literal.struct_name, NULL)))) {
         strbuf_free(&buf);
         return NULL;
     }
@@ -270,16 +270,7 @@ char *backend_emit_expr(Backend *backend, const Expr *expr) {
         return arena_copy_cstr(backend->arena, expr->as.bool_value ? "true" : "false", backend->error);
     }
     if (expr->kind == EXPR_STRING) {
-        ConstValue value;
-
-        value.type.kind = TYPE_STRING;
-        value.type.struct_name = slice_from_parts(NULL, 0U);
-        value.type.struct_name_cstr = NULL;
-        value.int_value = 0;
-        value.double_value = 0.0;
-        value.bool_value = false;
-        value.string_value = expr->as.string_value;
-        return backend_literal(backend, value);
+        return backend_literal(backend, const_value_make_string(expr->as.string_value));
     }
     if (expr->kind == EXPR_NAME) {
         return backend_emit_name_expr(backend, expr);
