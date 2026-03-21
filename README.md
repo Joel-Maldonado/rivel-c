@@ -1,30 +1,25 @@
 # Rivel
 
-Rivel is a small statically typed language with an intentionally tiny core.
+Rivel is a small statically typed, compiled, language with a tiny core.
 This repo is mostly a toy compiler project I made for fun to learn more about
-what it feels like to compile a language end to end.
+what it feels like to compile a language. 
 
-It is very much an educational project, not a serious production language. The
-language is limited on purpose, the compiler is small enough to read through,
-and the whole point was to try things out and see the pipeline work.
+It is very much an educational project that I quickly made to learn about comilers, not a serious production language. In fact, most of the features you expect to be in a programming language aren't implemented yet!
 
-Right now the compiler lowers Rivel source to C and then invokes a host C
-compiler to produce a native executable:
+The syntax of Rivel right now is a bit like if Python was static and compiled, and with braces instead of whitespace.
 
-`Rivel -> generated C -> native executable`
+Right now the compiler simply compiles Rivel source code to C which then produces a native executable via gcc:
 
-If you want the exact syntax and behavior, see [docs/grammar.md](docs/grammar.md).
+`Rivel -> automatically generated C -> native executable`
+
+If you want the exact syntax and behavior, see [docs/grammar.md](docs/grammar.md). But if you want to quickly see some of what's implemented so far, try running the `example.rivel` file.
 
 ## Quickstart
 
 ### Prerequisites
 
 - `make`
-- a C11 compiler to build `rivel`
-- `clang` in your `PATH` for compiling generated C into the final executable
-
-`make` builds the compiler itself. When you later run `./rivel program.rivel`,
-the compiler currently invokes `clang -std=c11` internally for the generated C.
+- `gcc` in your `PATH` for compiling generated C into the final executable
 
 ### Build the compiler
 
@@ -32,7 +27,7 @@ the compiler currently invokes `clang -std=c11` internally for the generated C.
 make
 ```
 
-That gives you `./rivel`.
+That gives you `./rivel`, the rivel compiler.
 
 ### Try a small program
 
@@ -42,42 +37,39 @@ Create `hello.rivel`:
 const BASE: Int = 40
 
 fn add_one(x: Int) -> Int {
-    return x + 1
+    return x * 2 + 1
 }
 
 fn main() -> Int {
     const result = add_one(BASE)
     print(result)
-    return result
+    return 0
 }
 ```
 
 Compile and run it:
 
 ```bash
-./rivel hello.rivel
-./out
+./rivel -o hello hello.rivel
+./hello
 ```
 
 Expected behavior:
 
-- `./out` prints `41`
-- the process exits with status `41`
+- `./hello` prints `81`
+- the process exits with status `0`
 
-If you want to keep the generated C around and give the output a better name:
+If you want to keep the automatically generated C code around:
 
 ```bash
-./rivel hello.rivel -o hello --emit-c
+./rivel -o hello hello.rivel --emit-c
 ./hello
 ls hello hello.c
 ```
 
-What those flags do:
-
-- default output name: `out`
+Flags:
 - `-o <name>` changes the executable name
-- without `--emit-c`, only the executable is kept
-- with `--emit-c`, `<output>.c` is kept next to the executable
+- `--emit-c` saves the automatically generated C code
 
 ## What It Can Do Right Now
 
@@ -120,7 +112,7 @@ What those flags do:
 
 ## What It Does Not Do
 
-The language is intentionally tiny. Some important limits:
+The language is tiny and not developed yet. Some important limits:
 
 - one input file per compiler invocation
 - only `Int` and `Bool` exist today
@@ -130,26 +122,14 @@ The language is intentionally tiny. Some important limits:
 - no top-level `mut`
 - `print(...)` is a statement-only builtin, not an expression
 - conditions for `if` and `while` must not be wrapped directly in outer parentheses
-- the generated C is currently compiled with `clang`, even if `make` used a different C compiler to build `rivel`
 
 ## Testing
 
-The main test path I actually trust right now is the end-to-end suite:
+To test if the compiled rivel compiler is working properly:
 
 ```bash
 bash tests/run_tests.sh
 ```
-
-That script rebuilds the compiler and checks:
-
-- successful compilation and execution
-- runtime error behavior
-- compile-time diagnostics
-- `--emit-c` artifact handling
-
-A separate unit-test script exists at `tests/run_unit_tests.sh`, but I would not
-treat it as the main documented workflow for this repo right now. The
-end-to-end suite above is the one to lean on.
 
 ## If You Want To Poke Around The Compiler
 

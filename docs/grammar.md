@@ -1,8 +1,6 @@
-# Rivel v1 Language Reference
+# Rivel Language Reference
 
-This document describes the Rivel syntax and semantics implemented in this
-repository today. It is a reference for the current compiler, not a draft of a
-larger future language.
+The current state of Rivel. Of course, there are lots of basic features not implemented yet. Expect lots of changes.
 
 ## Lexical Rules
 
@@ -12,7 +10,7 @@ Spaces, tabs, and carriage returns are ignored outside tokens.
 
 ### Comments
 
-Rivel v1 supports line comments that start with `#` and continue to the end of
+Right now, Rivel supports line comments that start with `#` and continue to the end of
 the line.
 
 ```rivel
@@ -122,7 +120,7 @@ fn main() -> Int {
 
 ## Types
 
-Rivel v1 has exactly two types:
+Right now, only has exactly two types:
 
 - `Int`
 - `Bool`
@@ -393,8 +391,6 @@ status `1`.
 
 The current implementation explicitly rejects these surface forms:
 
-- legacy `let`
-- legacy `exit`
 - `import` and `from`
 - `for ... in ...`
 - string literals
@@ -402,7 +398,3 @@ The current implementation explicitly rejects these surface forms:
 - list syntax
 - member access with `.`
 - top-level `mut`
-- `//` and `/* ... */` comments
-
-If you are documenting or testing Rivel, prefer examples that stay inside the
-implemented v1 core above.

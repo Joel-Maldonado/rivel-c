@@ -16,6 +16,8 @@
 
 extern char **environ;
 
+static const char HOST_C_COMPILER[] = "gcc";
+
 typedef struct {
     Arena arena;
     TokenList tokens;
@@ -146,17 +148,17 @@ static bool driver_wait_for_process(pid_t pid, CompileError *error) {
         if (WEXITSTATUS(status) == 0) {
             return true;
         }
-        return error_set(error, "Driver", "Host C compiler `clang` exited with status %d", WEXITSTATUS(status));
+        return error_set(error, "Driver", "Host C compiler `%s` exited with status %d", HOST_C_COMPILER, WEXITSTATUS(status));
     }
     if (WIFSIGNALED(status)) {
-        return error_set(error, "Driver", "Host C compiler `clang` terminated by signal %d", WTERMSIG(status));
+        return error_set(error, "Driver", "Host C compiler `%s` terminated by signal %d", HOST_C_COMPILER, WTERMSIG(status));
     }
-    return error_set(error, "Driver", "Host C compiler `clang` ended unexpectedly");
+    return error_set(error, "Driver", "Host C compiler `%s` ended unexpectedly", HOST_C_COMPILER);
 }
 
 static bool driver_run_host_compiler(const char *generated_c_path, const char *output_name, CompileError *error) {
     char *argv[] = {
-        "clang",
+        (char *)HOST_C_COMPILER,
         "-std=c11",
         (char *)generated_c_path,
         "-o",
@@ -167,7 +169,7 @@ static bool driver_run_host_compiler(const char *generated_c_path, const char *o
     int spawn_error = posix_spawnp(&pid, argv[0], NULL, NULL, argv, environ);
 
     if (spawn_error != 0) {
-        return error_set(error, "Driver", "Failed to launch host C compiler `clang`: %s", strerror(spawn_error));
+        return error_set(error, "Driver", "Failed to launch host C compiler `%s`: %s", HOST_C_COMPILER, strerror(spawn_error));
     }
     return driver_wait_for_process(pid, error);
 }

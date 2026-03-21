@@ -112,7 +112,7 @@ static void test_driver_compile_failure_cleans_temp_c_when_emit_c_is_disabled(vo
     error_init(&error);
     assert(!driver_compile_file(input_template, out_template, false, &error));
     assert(error.message != NULL);
-    assert(strstr(error.message, "clang") != NULL);
+    assert(strstr(error.message, "gcc") != NULL);
 
     (void)snprintf(temp_c_path, sizeof(temp_c_path), "%s.tmp.c", out_template);
     assert(access(temp_c_path, F_OK) != 0);
@@ -154,7 +154,7 @@ static void test_driver_compile_failure_keeps_c_when_emit_c_is_enabled(void) {
     error_init(&error);
     assert(!driver_compile_file(input_template, out_template, true, &error));
     assert(error.message != NULL);
-    assert(strstr(error.message, "clang") != NULL);
+    assert(strstr(error.message, "gcc") != NULL);
 
     (void)snprintf(emit_c_path, sizeof(emit_c_path), "%s.c", out_template);
     assert(access(emit_c_path, F_OK) == 0);
