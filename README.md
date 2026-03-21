@@ -8,7 +8,7 @@ Right now the compiler simply compiles Rivel source code to C which then produce
 
 `Rivel -> automatically generated C -> native executable`
 
-If you want the exact syntax and behavior, see [docs/grammar.md](docs/grammar.md). But if you want to quickly see some of what's implemented so far, try running the `example.rivel` file.
+If you want the exact syntax and behavior, see [docs/grammar.md](docs/grammar.md). If you want a fuller showcase of what Rivel looks like today, run the `example.rivel` cafe closing report.
 
 ## Quickstart
 
@@ -66,6 +66,15 @@ ls hello hello.c
 Flags:
 - `-o <name>` changes the executable name
 - `--emit-c` saves the automatically generated C code
+
+### Run the full example
+
+The repo also includes a larger `example.rivel` program that shows strings, doubles, loops, helper functions, and a readable multi-section report.
+
+```bash
+./rivel -o example example.rivel --emit-c
+./example
+```
 
 ## What It Can Do Right Now
 
