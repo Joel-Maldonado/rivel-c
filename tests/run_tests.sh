@@ -244,6 +244,7 @@ run_success_test "recursion"           "$SCRIPT_DIR/pass_recursion.rivel"       
 run_success_test "globals"             "$SCRIPT_DIR/pass_globals.rivel"              42
 run_success_test "shadowing"           "$SCRIPT_DIR/pass_shadowing.rivel"            42
 run_success_test "call_stmt"           "$SCRIPT_DIR/pass_call_statement.rivel"       42
+run_success_test "c_style_comments"    "$SCRIPT_DIR/pass_c_style_comments.rivel"     42
 run_clean_success_test "equality_condition" "$SCRIPT_DIR/pass_equality_condition.rivel" 42
 run_stdout_test  "print_int"           "$SCRIPT_DIR/pass_print_int.rivel"            7 $'42'
 run_stdout_test  "print_bool"          "$SCRIPT_DIR/pass_print_bool.rivel"           0 $'true\nfalse'
@@ -260,6 +261,7 @@ echo ""
 echo "--- Compile Failures ---"
 run_compile_fail_test "legacy_let"           "$SCRIPT_DIR/fail/legacy_let.rivel"             "Rivel v1 does not support legacy keyword \`let\`"
 run_compile_fail_test "legacy_exit"          "$SCRIPT_DIR/fail/legacy_exit.rivel"            "Rivel v1 does not support legacy keyword \`exit\`"
+run_compile_fail_test "legacy_hash_comment"  "$SCRIPT_DIR/fail/legacy_hash_comment.rivel"    "Unexpected character \`#\`"
 run_compile_fail_test "legacy_if_paren"      "$SCRIPT_DIR/fail/legacy_if_paren.rivel"        "Parenthesized conditions are not supported in Rivel v1"
 run_compile_fail_test "top_level_separator"  "$SCRIPT_DIR/fail/top_level_separator.rivel"    "Expected a declaration separator after top-level declaration"
 run_compile_fail_test "missing_main"         "$SCRIPT_DIR/fail/missing_main.rivel"           "missing entrypoint \`main\`"
@@ -286,6 +288,7 @@ run_compile_fail_test "for_end_not_int"      "$SCRIPT_DIR/fail/for_end_not_int.r
 run_compile_fail_test "assign_loop_var"      "$SCRIPT_DIR/fail/assign_loop_var.rivel"        "Cannot assign to immutable binding \`i\`"
 run_compile_fail_test "for_missing_range"    "$SCRIPT_DIR/fail/for_missing_range.rivel"      "Expected \`..\` or \`..=\` in \`for\` range"
 run_compile_fail_test "unsupported_member"   "$SCRIPT_DIR/fail/unsupported_member_access.rivel" "Member access is not part of Rivel v1"
+run_compile_fail_test "unterminated_block_comment" "$SCRIPT_DIR/fail/unterminated_block_comment.rivel" "Unterminated block comment"
 
 echo ""
 echo "--- Emit C Flag ---"

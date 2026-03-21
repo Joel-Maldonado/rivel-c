@@ -1,0 +1,11 @@
+// Top-level line comment.
+const BASE: Int = 20
+/* Top-level block comment. */
+const EXTRA = 22
+
+fn main() -> Int {
+    const total = BASE /* Block comments stay whitespace even across
+    lines. */ + EXTRA // Trailing line comment.
+    /* Block comment between statements. */
+    return total
+}

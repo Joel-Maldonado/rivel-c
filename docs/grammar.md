@@ -10,15 +10,20 @@ Spaces, tabs, and carriage returns are ignored outside tokens.
 
 ### Comments
 
-Right now, Rivel supports line comments that start with `#` and continue to the end of
-the line.
+Rivel supports C-style comments:
+
+- `//` starts a line comment and runs through the end of the line
+- `/* ... */` starts a block comment and ends at the first `*/`
 
 ```rivel
-# this is a comment
+// this is a comment
 const X = 1
 ```
 
-`//` and `/* ... */` comments are rejected.
+Block comments are treated like whitespace, even when they span multiple lines,
+so embedded newlines do not emit statement separators.
+
+`#` comments are rejected.
 
 ### Statement and Declaration Separators
 
@@ -217,8 +222,8 @@ Conditions must be `Bool`.
 The current parser rejects a condition that starts with outer parentheses:
 
 ```rivel
-if (x == 1) { ... }   # rejected
-while (ready) { ... } # rejected
+if (x == 1) { ... }   // rejected
+while (ready) { ... } // rejected
 ```
 
 Grouped subexpressions are still allowed when the condition does not begin with
