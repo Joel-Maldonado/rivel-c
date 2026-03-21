@@ -228,186 +228,256 @@ static void rivel_print_string_take(RivelString value) {
     rivel_string_release(value);
 }
 
-static const RivelString rivel_global_CAFE_NAME = (RivelString){"R" "i" "v" "e" "l" " " "R" "o" "a" "s" "t" "e" "r" "s", 14, NULL};
-static const RivelString rivel_global_DAY_LABEL = (RivelString){"F" "r" "i" "d" "a" "y", 6, NULL};
-static const int64_t rivel_global_MORNING_DRINKS = INT64_C(46);
-static const int64_t rivel_global_AFTERNOON_DRINKS = INT64_C(58);
-static const int64_t rivel_global_EVENING_DRINKS = INT64_C(31);
-static const int64_t rivel_global_PASTRIES_SOLD = INT64_C(24);
-static const int64_t rivel_global_HOURS_OPEN = INT64_C(8);
-static const int64_t rivel_global_BEAN_BAGS_OPEN = INT64_C(8);
-static const int64_t rivel_global_BEAN_BAGS_LEFT = INT64_C(2);
-static const double rivel_global_DRINK_PRICE = 5.5;
-static const double rivel_global_PASTRY_PRICE = 3.5;
-static const int64_t rivel_global_DRINK_TARGET = INT64_C(120);
-static const RivelString rivel_global_SUPPLIER_NOTE = (RivelString){"F" "r" "i" "d" "a" "y" " " "d" "e" "l" "i" "v" "e" "r" "y" " " "c" "o" "n" "f" "i" "r" "m" "e" "d" ":" " " "o" "a" "t" " " "m" "i" "l" "k" " " "a" "n" "d" " " "b" "e" "a" "n" "s", 45, NULL};
-static const RivelString rivel_global_REPORT_TITLE = (RivelString){"R" "i" "v" "e" "l" " " "R" "o" "a" "s" "t" "e" "r" "s" " " "c" "l" "o" "s" "i" "n" "g" " " "r" "e" "p" "o" "r" "t", 29, NULL};
-static const RivelString rivel_global_BRAND_CODE = (RivelString){"R" "i" "v" "e" "l", 5, NULL};
-static const int64_t rivel_global_DAY_LABEL_WIDTH = INT64_C(6);
-static const bool rivel_global_NOTE_HAS_MILK = true;
-static const bool rivel_global_BRAND_LOOKS_RIGHT = true;
-static const bool rivel_global_NAME_HAS_ROASTERS = true;
+typedef struct RivelStruct_Stats {
+    int64_t total;
+    double average;
+    RivelString tier;
+} RivelStruct_Stats;
 
+static RivelStruct_Stats rivel_struct_Stats_retain(RivelStruct_Stats value) {
+    value.tier = rivel_string_retain(value.tier);
+    return value;
+}
+
+static void rivel_struct_Stats_release(RivelStruct_Stats value) {
+    rivel_string_release(value.tier);
+}
+
+static int64_t rivel_struct_Stats_take_total(RivelStruct_Stats value) {
+    int64_t field = value.total;
+    rivel_string_release(value.tier);
+    return field;
+}
+
+static double rivel_struct_Stats_take_average(RivelStruct_Stats value) {
+    double field = value.average;
+    rivel_string_release(value.tier);
+    return field;
+}
+
+static RivelString rivel_struct_Stats_take_tier(RivelStruct_Stats value) {
+    RivelString field = rivel_string_retain(value.tier);
+    rivel_string_release(value.tier);
+    return field;
+}
+
+typedef struct RivelStruct_Profile {
+    RivelString name;
+    int64_t level;
+    bool active;
+    RivelStruct_Stats stats;
+} RivelStruct_Profile;
+
+static RivelStruct_Profile rivel_struct_Profile_retain(RivelStruct_Profile value) {
+    value.name = rivel_string_retain(value.name);
+    value.stats = rivel_struct_Stats_retain(value.stats);
+    return value;
+}
+
+static void rivel_struct_Profile_release(RivelStruct_Profile value) {
+    rivel_string_release(value.name);
+    rivel_struct_Stats_release(value.stats);
+}
+
+static RivelString rivel_struct_Profile_take_name(RivelStruct_Profile value) {
+    RivelString field = rivel_string_retain(value.name);
+    rivel_string_release(value.name);
+    rivel_struct_Stats_release(value.stats);
+    return field;
+}
+
+static int64_t rivel_struct_Profile_take_level(RivelStruct_Profile value) {
+    int64_t field = value.level;
+    rivel_string_release(value.name);
+    rivel_struct_Stats_release(value.stats);
+    return field;
+}
+
+static bool rivel_struct_Profile_take_active(RivelStruct_Profile value) {
+    bool field = value.active;
+    rivel_string_release(value.name);
+    rivel_struct_Stats_release(value.stats);
+    return field;
+}
+
+static RivelStruct_Stats rivel_struct_Profile_take_stats(RivelStruct_Profile value) {
+    RivelStruct_Stats field = rivel_struct_Stats_retain(value.stats);
+    rivel_string_release(value.name);
+    rivel_struct_Stats_release(value.stats);
+    return field;
+}
+
+
+static const RivelString rivel_global_TITLE = (RivelString){"R" "i" "v" "e" "l" " " "f" "e" "a" "t" "u" "r" "e" " " "t" "o" "u" "r", 18, NULL};
+static const RivelString rivel_global_TAGLINE = (RivelString){"s" "m" "a" "l" "l" " " "l" "a" "n" "g" "u" "a" "g" "e" "," " " "c" "l" "e" "a" "r" " " "s" "y" "n" "t" "a" "x", 28, NULL};
+static const RivelString rivel_global_TITLE_SLICE = (RivelString){"f" "e" "a" "t" "u" "r" "e", 7, NULL};
+static const int64_t rivel_global_TITLE_WIDTH = INT64_C(18);
+static const bool rivel_global_HAS_RIVEL = true;
+static const bool rivel_global_LOOKS_POLISHED = true;
+
+static RivelString rivel_fn_section(RivelString rivel_param_name);
+static int64_t rivel_fn_sum_inclusive(int64_t rivel_param_limit);
+static int64_t rivel_fn_sum_exclusive(int64_t rivel_param_limit);
+static int64_t rivel_fn_spin_until(int64_t rivel_param_limit);
+static double rivel_fn_mean(int64_t rivel_param_left, int64_t rivel_param_right);
+static RivelString rivel_fn_tier_for(int64_t rivel_param_total);
+static RivelStruct_Stats rivel_fn_build_stats(int64_t rivel_param_rounds);
+static RivelStruct_Profile rivel_fn_make_profile(RivelString rivel_param_name, int64_t rivel_param_rounds);
+static RivelStruct_Profile rivel_fn_promote(RivelStruct_Profile rivel_param_profile, int64_t rivel_param_bonus);
+static RivelString rivel_fn_summary(RivelStruct_Profile rivel_param_profile);
 static int64_t rivel_fn_main(void);
-static int64_t rivel_fn_total_drinks_sold(void);
-static int64_t rivel_fn_estimate_pastry_batches(int64_t rivel_param_pastries);
-static double rivel_fn_drink_revenue(int64_t rivel_param_drinks);
-static double rivel_fn_pastry_revenue(int64_t rivel_param_pastries);
-static double rivel_fn_average_revenue_per_hour(double rivel_param_total_revenue);
-static RivelString rivel_fn_closing_status(int64_t rivel_param_total_drinks, double rivel_param_gross_revenue, int64_t rivel_param_bean_bags_left);
-static int64_t rivel_fn_emit_report(int64_t rivel_param_total_drinks, int64_t rivel_param_pastry_batches, int64_t rivel_param_bean_bags_used, double rivel_param_drink_total, double rivel_param_pastry_total, double rivel_param_gross_total, double rivel_param_hourly_average, RivelString rivel_param_status, int64_t rivel_param_checklist_count);
-static RivelString rivel_fn_checklist_line(int64_t rivel_param_step);
-static int64_t rivel_fn_print_tomorrow_checklist(void);
 
-static int64_t rivel_fn_main(void) {
-    rivel_print_string_take(rivel_string_retain(rivel_global_REPORT_TITLE));
-    rivel_print_string_take(rivel_string_concat_take((RivelString){"D" "a" "y" ":" " ", 5, NULL}, rivel_string_retain(rivel_global_DAY_LABEL)));
-    rivel_print_string_take(rivel_string_concat_take((RivelString){"B" "r" "a" "n" "d" " " "c" "o" "d" "e" ":" " ", 12, NULL}, rivel_string_retain(rivel_global_BRAND_CODE)));
-    rivel_print_string_take(rivel_string_retain(rivel_global_SUPPLIER_NOTE));
-    int64_t rivel_local_total_drinks_0 = rivel_fn_total_drinks_sold();
-    int64_t rivel_local_pastry_batches_1 = rivel_fn_estimate_pastry_batches(rivel_global_PASTRIES_SOLD);
-    int64_t rivel_local_bean_bags_used_2 = (rivel_global_BEAN_BAGS_OPEN - rivel_global_BEAN_BAGS_LEFT);
-    double rivel_local_drink_total_3 = rivel_fn_drink_revenue(rivel_local_total_drinks_0);
-    double rivel_local_pastry_total_4 = rivel_fn_pastry_revenue(rivel_global_PASTRIES_SOLD);
-    double rivel_local_gross_total_5 = (rivel_local_drink_total_3 + rivel_local_pastry_total_4);
-    double rivel_local_hourly_average_6 = rivel_fn_average_revenue_per_hour(rivel_local_gross_total_5);
-    RivelString rivel_local_status_7 = rivel_fn_closing_status(rivel_local_total_drinks_0, rivel_local_gross_total_5, rivel_global_BEAN_BAGS_LEFT);
-    int64_t rivel_local_checklist_count_8 = INT64_C(3);
-    int64_t rivel_local_report_result_9 = rivel_fn_emit_report(rivel_local_total_drinks_0, rivel_local_pastry_batches_1, rivel_local_bean_bags_used_2, rivel_local_drink_total_3, rivel_local_pastry_total_4, rivel_local_gross_total_5, rivel_local_hourly_average_6, rivel_string_retain(rivel_local_status_7), rivel_local_checklist_count_8);
-    if (rivel_local_report_result_9 != INT64_C(0)) {
-        int64_t rivel_return_value_10 = rivel_local_report_result_9;
-        rivel_string_release(rivel_local_status_7);
-        return rivel_return_value_10;
-    }
-    rivel_print_string_take((RivelString){"T" "o" "m" "o" "r" "r" "o" "w" " " "c" "h" "e" "c" "k" "l" "i" "s" "t", 18, NULL});
-    int64_t rivel_local_printed_checklist_count_11 = rivel_fn_print_tomorrow_checklist();
-    if (rivel_local_printed_checklist_count_11 == rivel_local_checklist_count_8) {
-        int64_t rivel_return_value_12 = INT64_C(0);
-        return rivel_return_value_12;
-    }
-    else {
-        int64_t rivel_return_value_13 = INT64_C(1);
-        return rivel_return_value_13;
-    }
-}
-
-static int64_t rivel_fn_total_drinks_sold(void) {
-    int64_t rivel_return_value_0 = ((rivel_global_MORNING_DRINKS + rivel_global_AFTERNOON_DRINKS) + rivel_global_EVENING_DRINKS);
+static RivelString rivel_fn_section(RivelString rivel_param_name) {
+    RivelString rivel_return_value_0 = rivel_string_concat_take(rivel_string_concat_take((RivelString){"=" "=" " ", 3, NULL}, rivel_string_retain(rivel_param_name)), (RivelString){" " "=" "=", 3, NULL});
+    rivel_string_release(rivel_param_name);
     return rivel_return_value_0;
 }
 
-static int64_t rivel_fn_estimate_pastry_batches(int64_t rivel_param_pastries) {
-    int64_t rivel_local_batch_capacity_0 = INT64_C(8);
-    int64_t rivel_local_batches_1 = INT64_C(0);
-    int64_t rivel_local_covered_2 = INT64_C(0);
-    while (rivel_local_covered_2 < rivel_param_pastries) {
-        rivel_local_batches_1 = (rivel_local_batches_1 + INT64_C(1));
-        rivel_local_covered_2 = (rivel_local_covered_2 + rivel_local_batch_capacity_0);
-    }
-    int64_t rivel_return_value_3 = rivel_local_batches_1;
-    return rivel_return_value_3;
-}
-
-static double rivel_fn_drink_revenue(int64_t rivel_param_drinks) {
-    double rivel_return_value_0 = (rivel_param_drinks * rivel_global_DRINK_PRICE);
-    return rivel_return_value_0;
-}
-
-static double rivel_fn_pastry_revenue(int64_t rivel_param_pastries) {
-    double rivel_return_value_0 = (rivel_param_pastries * rivel_global_PASTRY_PRICE);
-    return rivel_return_value_0;
-}
-
-static double rivel_fn_average_revenue_per_hour(double rivel_param_total_revenue) {
-    double rivel_return_value_0 = (rivel_param_total_revenue / rivel_global_HOURS_OPEN);
-    return rivel_return_value_0;
-}
-
-static RivelString rivel_fn_closing_status(int64_t rivel_param_total_drinks, double rivel_param_gross_revenue, int64_t rivel_param_bean_bags_left) {
-    if ((rivel_param_total_drinks >= rivel_global_DRINK_TARGET) && (rivel_param_gross_revenue >= 800.0)) {
-        RivelString rivel_return_value_0 = (RivelString){"S" "t" "r" "o" "n" "g" " " "c" "l" "o" "s" "e" ":" " " "t" "h" "e" " " "c" "a" "f" "e" " " "b" "e" "a" "t" " " "i" "t" "s" " " "d" "r" "i" "n" "k" " " "t" "a" "r" "g" "e" "t" " " "a" "n" "d" " " "c" "l" "e" "a" "r" "e" "d" " " "a" " " "h" "e" "a" "l" "t" "h" "y" " " "n" "i" "g" "h" "t" ".", 73, NULL};
-        return rivel_return_value_0;
-    }
-    else if ((rivel_param_bean_bags_left <= INT64_C(2)) || (!rivel_global_NOTE_HAS_MILK)) {
-        RivelString rivel_return_value_1 = (RivelString){"W" "a" "t" "c" "h" " " "i" "n" "v" "e" "n" "t" "o" "r" "y" ":" " " "s" "a" "l" "e" "s" " " "w" "e" "r" "e" " " "s" "o" "l" "i" "d" "," " " "b" "u" "t" " " "m" "o" "r" "n" "i" "n" "g" " " "p" "r" "e" "p" " " "n" "e" "e" "d" "s" " " "a" "t" "t" "e" "n" "t" "i" "o" "n" ".", 68, NULL};
-        return rivel_return_value_1;
-    }
-    else {
-        RivelString rivel_return_value_2 = (RivelString){"M" "i" "s" "s" "e" "d" " " "t" "a" "r" "g" "e" "t" ":" " " "t" "h" "e" " " "o" "p" "e" "n" "e" "r" " " "s" "h" "o" "u" "l" "d" " " "p" "u" "s" "h" " " "b" "r" "e" "a" "k" "f" "a" "s" "t" " " "t" "r" "a" "f" "f" "i" "c" " " "h" "a" "r" "d" "e" "r" " " "t" "o" "m" "o" "r" "r" "o" "w" ".", 72, NULL};
-        return rivel_return_value_2;
-    }
-}
-
-static int64_t rivel_fn_emit_report(int64_t rivel_param_total_drinks, int64_t rivel_param_pastry_batches, int64_t rivel_param_bean_bags_used, double rivel_param_drink_total, double rivel_param_pastry_total, double rivel_param_gross_total, double rivel_param_hourly_average, RivelString rivel_param_status, int64_t rivel_param_checklist_count) {
-    rivel_print_string_take((RivelString){"O" "p" "e" "r" "a" "t" "i" "o" "n" "s" " " "t" "o" "t" "a" "l" "s", 17, NULL});
-    rivel_print_string_take((RivelString){"D" "a" "y" " " "l" "a" "b" "e" "l" " " "w" "i" "d" "t" "h", 15, NULL});
-    rivel_print_int(rivel_global_DAY_LABEL_WIDTH);
-    rivel_print_string_take((RivelString){"D" "r" "i" "n" "k" "s" " " "s" "o" "l" "d", 11, NULL});
-    rivel_print_int(rivel_param_total_drinks);
-    rivel_print_string_take((RivelString){"P" "a" "s" "t" "r" "i" "e" "s" " " "s" "o" "l" "d", 13, NULL});
-    rivel_print_int(rivel_global_PASTRIES_SOLD);
-    rivel_print_string_take((RivelString){"P" "a" "s" "t" "r" "y" " " "b" "a" "t" "c" "h" "e" "s" " " "b" "a" "k" "e" "d", 20, NULL});
-    rivel_print_int(rivel_param_pastry_batches);
-    rivel_print_string_take((RivelString){"B" "e" "a" "n" " " "b" "a" "g" "s" " " "u" "s" "e" "d", 14, NULL});
-    rivel_print_int(rivel_param_bean_bags_used);
-    rivel_print_string_take((RivelString){"F" "i" "n" "a" "n" "c" "i" "a" "l" " " "s" "u" "m" "m" "a" "r" "y", 17, NULL});
-    rivel_print_string_take((RivelString){"D" "r" "i" "n" "k" " " "r" "e" "v" "e" "n" "u" "e", 13, NULL});
-    rivel_print_double(rivel_param_drink_total);
-    rivel_print_string_take((RivelString){"P" "a" "s" "t" "r" "y" " " "r" "e" "v" "e" "n" "u" "e", 14, NULL});
-    rivel_print_double(rivel_param_pastry_total);
-    rivel_print_string_take((RivelString){"G" "r" "o" "s" "s" " " "r" "e" "v" "e" "n" "u" "e", 13, NULL});
-    rivel_print_double(rivel_param_gross_total);
-    rivel_print_string_take((RivelString){"A" "v" "e" "r" "a" "g" "e" " " "r" "e" "v" "e" "n" "u" "e" " " "p" "e" "r" " " "h" "o" "u" "r", 24, NULL});
-    rivel_print_double(rivel_param_hourly_average);
-    rivel_print_string_take((RivelString){"C" "l" "o" "s" "i" "n" "g" " " "s" "t" "a" "t" "u" "s", 14, NULL});
-    rivel_print_string_take(rivel_string_retain(rivel_param_status));
-    rivel_print_string_take((RivelString){"S" "u" "p" "p" "l" "i" "e" "r" " " "n" "o" "t" "e" " " "m" "e" "n" "t" "i" "o" "n" "s" " " "m" "i" "l" "k", 27, NULL});
-    rivel_print_bool(rivel_global_NOTE_HAS_MILK);
-    rivel_print_string_take((RivelString){"C" "a" "f" "e" " " "n" "a" "m" "e" " " "s" "t" "a" "r" "t" "s" " " "c" "o" "r" "r" "e" "c" "t" "l" "y", 26, NULL});
-    rivel_print_bool(rivel_global_BRAND_LOOKS_RIGHT);
-    rivel_print_string_take((RivelString){"C" "a" "f" "e" " " "n" "a" "m" "e" " " "e" "n" "d" "s" " " "c" "o" "r" "r" "e" "c" "t" "l" "y", 24, NULL});
-    rivel_print_bool(rivel_global_NAME_HAS_ROASTERS);
-    rivel_print_string_take((RivelString){"C" "h" "e" "c" "k" "l" "i" "s" "t" " " "i" "t" "e" "m" "s" " " "p" "l" "a" "n" "n" "e" "d", 23, NULL});
-    rivel_print_int(rivel_param_checklist_count);
-    int64_t rivel_return_value_0 = INT64_C(0);
-    rivel_string_release(rivel_param_status);
-    return rivel_return_value_0;
-}
-
-static RivelString rivel_fn_checklist_line(int64_t rivel_param_step) {
-    if (rivel_param_step == INT64_C(1)) {
-        RivelString rivel_return_value_0 = (RivelString){"1" "." " " "R" "e" "s" "t" "o" "c" "k" " " "o" "a" "t" " " "m" "i" "l" "k" " " "a" "n" "d" " " "l" "a" "b" "e" "l" " " "t" "h" "e" " " "m" "o" "r" "n" "i" "n" "g" " " "f" "r" "i" "d" "g" "e" ".", 49, NULL};
-        return rivel_return_value_0;
-    }
-    else if (rivel_param_step == INT64_C(2)) {
-        RivelString rivel_return_value_1 = (RivelString){"2" "." " " "G" "r" "i" "n" "d" " " "t" "h" "e" " " "f" "i" "r" "s" "t" " " "h" "o" "p" "p" "e" "r" " " "a" "n" "d" " " "s" "t" "a" "g" "e" " " "p" "a" "s" "t" "r" "y" " " "b" "a" "g" "s" ".", 48, NULL};
-        return rivel_return_value_1;
-    }
-    else {
-        RivelString rivel_return_value_2 = (RivelString){"3" "." " " "W" "r" "i" "t" "e" " " "t" "h" "e" " " "w" "e" "e" "k" "e" "n" "d" " " "s" "p" "e" "c" "i" "a" "l" " " "b" "o" "a" "r" "d" " " "b" "e" "f" "o" "r" "e" " " "t" "h" "e" " " "f" "i" "r" "s" "t" " " "r" "u" "s" "h" ".", 57, NULL};
-        return rivel_return_value_2;
-    }
-}
-
-static int64_t rivel_fn_print_tomorrow_checklist(void) {
-    int64_t rivel_local_printed_0 = INT64_C(0);
+static int64_t rivel_fn_sum_inclusive(int64_t rivel_param_limit) {
+    int64_t rivel_local_total_0 = INT64_C(0);
     {
         int64_t rivel_range_start_1 = INT64_C(1);
-        int64_t rivel_range_end_2 = INT64_C(3);
+        int64_t rivel_range_end_2 = rivel_param_limit;
         if (rivel_range_start_1 <= rivel_range_end_2) {
-            int64_t rivel_local_step_3 = rivel_range_start_1;
+            int64_t rivel_local_i_3 = rivel_range_start_1;
             while (true) {
-                rivel_print_string_take(rivel_fn_checklist_line(rivel_local_step_3));
-                rivel_local_printed_0 = (rivel_local_printed_0 + INT64_C(1));
-                if (rivel_local_step_3 == rivel_range_end_2) {
+                rivel_local_total_0 = (rivel_local_total_0 + rivel_local_i_3);
+                if (rivel_local_i_3 == rivel_range_end_2) {
                     break;
                 }
-                rivel_local_step_3 += INT64_C(1);
+                rivel_local_i_3 += INT64_C(1);
             }
         }
     }
-    int64_t rivel_return_value_4 = rivel_local_printed_0;
+    int64_t rivel_return_value_4 = rivel_local_total_0;
     return rivel_return_value_4;
+}
+
+static int64_t rivel_fn_sum_exclusive(int64_t rivel_param_limit) {
+    int64_t rivel_local_total_0 = INT64_C(0);
+    {
+        int64_t rivel_range_start_1 = INT64_C(0);
+        int64_t rivel_range_end_2 = rivel_param_limit;
+        if (rivel_range_start_1 < rivel_range_end_2) {
+            int64_t rivel_local_i_3 = rivel_range_start_1;
+            while (rivel_local_i_3 < rivel_range_end_2) {
+                rivel_local_total_0 = (rivel_local_total_0 + rivel_local_i_3);
+                rivel_local_i_3 += INT64_C(1);
+            }
+        }
+    }
+    int64_t rivel_return_value_4 = rivel_local_total_0;
+    return rivel_return_value_4;
+}
+
+static int64_t rivel_fn_spin_until(int64_t rivel_param_limit) {
+    int64_t rivel_local_step_0 = INT64_C(0);
+    int64_t rivel_local_total_1 = INT64_C(0);
+    while (rivel_local_step_0 < rivel_param_limit) {
+        rivel_local_total_1 = (rivel_local_total_1 + (rivel_local_step_0 * INT64_C(2)));
+        rivel_local_step_0 = (rivel_local_step_0 + INT64_C(1));
+    }
+    int64_t rivel_return_value_2 = rivel_local_total_1;
+    return rivel_return_value_2;
+}
+
+static double rivel_fn_mean(int64_t rivel_param_left, int64_t rivel_param_right) {
+    double rivel_return_value_0 = ((rivel_param_left + rivel_param_right) / 2.0);
+    return rivel_return_value_0;
+}
+
+static RivelString rivel_fn_tier_for(int64_t rivel_param_total) {
+    if (rivel_param_total >= INT64_C(15)) {
+        RivelString rivel_return_value_0 = (RivelString){"e" "x" "p" "e" "r" "t", 6, NULL};
+        return rivel_return_value_0;
+    }
+    else if (rivel_param_total >= INT64_C(8)) {
+        RivelString rivel_return_value_1 = (RivelString){"s" "t" "e" "a" "d" "y", 6, NULL};
+        return rivel_return_value_1;
+    }
+    else {
+        RivelString rivel_return_value_2 = (RivelString){"s" "t" "a" "r" "t" "e" "r", 7, NULL};
+        return rivel_return_value_2;
+    }
+}
+
+static RivelStruct_Stats rivel_fn_build_stats(int64_t rivel_param_rounds) {
+    int64_t rivel_local_total_0 = rivel_fn_sum_inclusive(rivel_param_rounds);
+    double rivel_local_average_1 = ((rivel_local_total_0 * 1.0) / rivel_param_rounds);
+    RivelStruct_Stats rivel_return_value_2 = ((RivelStruct_Stats){.total = rivel_local_total_0, .average = rivel_local_average_1, .tier = rivel_fn_tier_for(rivel_local_total_0)});
+    return rivel_return_value_2;
+}
+
+static RivelStruct_Profile rivel_fn_make_profile(RivelString rivel_param_name, int64_t rivel_param_rounds) {
+    RivelStruct_Profile rivel_return_value_0 = ((RivelStruct_Profile){.name = rivel_string_retain(rivel_param_name), .level = INT64_C(1), .active = false, .stats = rivel_fn_build_stats(rivel_param_rounds)});
+    rivel_string_release(rivel_param_name);
+    return rivel_return_value_0;
+}
+
+static RivelStruct_Profile rivel_fn_promote(RivelStruct_Profile rivel_param_profile, int64_t rivel_param_bonus) {
+    RivelStruct_Profile rivel_local_next_0 = rivel_struct_Profile_retain(rivel_param_profile);
+    rivel_local_next_0.level = (rivel_struct_Profile_take_level(rivel_struct_Profile_retain(rivel_local_next_0)) + rivel_param_bonus);
+    rivel_local_next_0.active = (rivel_struct_Profile_take_level(rivel_struct_Profile_retain(rivel_local_next_0)) >= INT64_C(2));
+    RivelStruct_Profile rivel_return_value_1 = rivel_struct_Profile_retain(rivel_local_next_0);
+    rivel_struct_Profile_release(rivel_local_next_0);
+    rivel_struct_Profile_release(rivel_param_profile);
+    return rivel_return_value_1;
+}
+
+static RivelString rivel_fn_summary(RivelStruct_Profile rivel_param_profile) {
+    if (rivel_struct_Profile_take_active(rivel_struct_Profile_retain(rivel_param_profile)) && (rivel_struct_Stats_take_total(rivel_struct_Profile_take_stats(rivel_struct_Profile_retain(rivel_param_profile))) >= INT64_C(10))) {
+        RivelString rivel_return_value_0 = rivel_string_concat_take(rivel_struct_Profile_take_name(rivel_struct_Profile_retain(rivel_param_profile)), (RivelString){" " "l" "o" "o" "k" "s" " " "r" "e" "a" "d" "y", 12, NULL});
+        rivel_struct_Profile_release(rivel_param_profile);
+        return rivel_return_value_0;
+    }
+    else if (rivel_struct_Profile_take_active(rivel_struct_Profile_retain(rivel_param_profile))) {
+        RivelString rivel_return_value_1 = rivel_string_concat_take(rivel_struct_Profile_take_name(rivel_struct_Profile_retain(rivel_param_profile)), (RivelString){" " "i" "s" " " "i" "m" "p" "r" "o" "v" "i" "n" "g", 13, NULL});
+        return rivel_return_value_1;
+    }
+    else {
+        RivelString rivel_return_value_2 = rivel_string_concat_take(rivel_struct_Profile_take_name(rivel_struct_Profile_retain(rivel_param_profile)), (RivelString){" " "i" "s" " " "w" "a" "r" "m" "i" "n" "g" " " "u" "p", 14, NULL});
+        return rivel_return_value_2;
+    }
+}
+
+static int64_t rivel_fn_main(void) {
+    rivel_print_string_take(rivel_fn_section(rivel_string_retain(rivel_global_TITLE)));
+    rivel_print_string_take(rivel_string_retain(rivel_global_TAGLINE));
+    rivel_print_string_take((RivelString){"s" "l" "i" "c" "e" " " "f" "r" "o" "m" " " "t" "h" "e" " " "t" "i" "t" "l" "e", 20, NULL});
+    rivel_print_string_take(rivel_string_retain(rivel_global_TITLE_SLICE));
+    rivel_print_string_take((RivelString){"t" "i" "t" "l" "e" " " "w" "i" "d" "t" "h", 11, NULL});
+    rivel_print_int(rivel_global_TITLE_WIDTH);
+    rivel_print_string_take((RivelString){"c" "o" "n" "t" "a" "i" "n" "s" " " "R" "i" "v" "e" "l", 14, NULL});
+    rivel_print_bool(rivel_global_HAS_RIVEL);
+    rivel_print_string_take((RivelString){"s" "t" "a" "r" "t" "s" " " "a" "n" "d" " " "e" "n" "d" "s" " " "w" "e" "l" "l", 20, NULL});
+    rivel_print_bool(rivel_global_LOOKS_POLISHED);
+    rivel_print_string_take(rivel_fn_section((RivelString){"l" "o" "o" "p" "s" " " "a" "n" "d" " " "n" "u" "m" "b" "e" "r" "s", 17, NULL}));
+    int64_t rivel_local_inclusive_0 = rivel_fn_sum_inclusive(INT64_C(5));
+    int64_t rivel_local_exclusive_1 = rivel_fn_sum_exclusive(INT64_C(5));
+    int64_t rivel_local_spun_2 = rivel_fn_spin_until(INT64_C(4));
+    double rivel_local_blended_3 = rivel_fn_mean(rivel_local_inclusive_0, (rivel_local_exclusive_1 + rivel_local_spun_2));
+    rivel_print_string_take((RivelString){"i" "n" "c" "l" "u" "s" "i" "v" "e" " " "f" "o" "r" " " "t" "o" "t" "a" "l", 19, NULL});
+    rivel_print_int(rivel_local_inclusive_0);
+    rivel_print_string_take((RivelString){"e" "x" "c" "l" "u" "s" "i" "v" "e" " " "f" "o" "r" " " "t" "o" "t" "a" "l", 19, NULL});
+    rivel_print_int(rivel_local_exclusive_1);
+    rivel_print_string_take((RivelString){"w" "h" "i" "l" "e" " " "t" "o" "t" "a" "l", 11, NULL});
+    rivel_print_int(rivel_local_spun_2);
+    rivel_print_string_take((RivelString){"d" "o" "u" "b" "l" "e" " " "m" "e" "a" "n", 11, NULL});
+    rivel_print_double(rivel_local_blended_3);
+    rivel_print_string_take(rivel_fn_section((RivelString){"s" "t" "r" "u" "c" "t" "s" " " "a" "n" "d" " " "f" "u" "n" "c" "t" "i" "o" "n" "s", 21, NULL}));
+    RivelStruct_Profile rivel_local_rookie_4 = rivel_fn_make_profile((RivelString){"N" "o" "v" "a", 4, NULL}, INT64_C(4));
+    RivelStruct_Profile rivel_local_upgraded_5 = rivel_fn_promote(rivel_struct_Profile_retain(rivel_local_rookie_4), INT64_C(2));
+    rivel_print_string_take(rivel_struct_Profile_take_name(rivel_struct_Profile_retain(rivel_local_upgraded_5)));
+    rivel_print_int(rivel_struct_Profile_take_level(rivel_struct_Profile_retain(rivel_local_upgraded_5)));
+    rivel_print_bool(rivel_struct_Profile_take_active(rivel_struct_Profile_retain(rivel_local_upgraded_5)));
+    rivel_print_string_take(rivel_struct_Stats_take_tier(rivel_struct_Profile_take_stats(rivel_struct_Profile_retain(rivel_local_upgraded_5))));
+    rivel_print_int(rivel_struct_Stats_take_total(rivel_struct_Profile_take_stats(rivel_struct_Profile_retain(rivel_local_upgraded_5))));
+    rivel_print_double(rivel_struct_Stats_take_average(rivel_struct_Profile_take_stats(rivel_struct_Profile_retain(rivel_local_upgraded_5))));
+    rivel_print_string_take(rivel_fn_summary(rivel_struct_Profile_retain(rivel_local_upgraded_5)));
+    int64_t rivel_return_value_6 = INT64_C(0);
+    rivel_struct_Profile_release(rivel_local_upgraded_5);
+    rivel_struct_Profile_release(rivel_local_rookie_4);
+    return rivel_return_value_6;
 }
 
 int main(void) {

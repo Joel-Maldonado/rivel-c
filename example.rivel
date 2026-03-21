@@ -1,161 +1,144 @@
-// Fixed inputs and derived labels keep the example deterministic and easy to read.
-const CAFE_NAME: String = "Rivel Roasters"
-const DAY_LABEL: String = "Friday"
-const MORNING_DRINKS: Int = 46
-const AFTERNOON_DRINKS: Int = 58
-const EVENING_DRINKS: Int = 31
-const PASTRIES_SOLD: Int = 24
-const HOURS_OPEN: Int = 8
-const BEAN_BAGS_OPEN: Int = 8
-const BEAN_BAGS_LEFT: Int = 2
-const DRINK_PRICE: Double = 5.5
-const PASTRY_PRICE: Double = 3.5
-const DRINK_TARGET: Int = 120
-const SUPPLIER_NOTE: String = "Friday delivery confirmed: oat milk and beans"
-const REPORT_TITLE: String = CAFE_NAME + " closing report"
-const BRAND_CODE: String = substr(CAFE_NAME, 0, 5)
-const DAY_LABEL_WIDTH: Int = len(DAY_LABEL)
-const NOTE_HAS_MILK: Bool = contains(SUPPLIER_NOTE, "milk")
-const BRAND_LOOKS_RIGHT: Bool = starts_with(CAFE_NAME, "Rivel")
-const NAME_HAS_ROASTERS: Bool = ends_with(CAFE_NAME, "Roasters")
+// Top-level constants show typed globals, inference, and string builtins.
+const TITLE: String = "Rivel feature tour"
+const TAGLINE: String = "small language, clear syntax"
+const TITLE_SLICE: String = substr(TITLE, 6, 7)
+const TITLE_WIDTH = len(TITLE)
+const HAS_RIVEL = contains(TITLE, "Rivel")
+const LOOKS_POLISHED = starts_with(TAGLINE, "small") and ends_with(TAGLINE, "syntax")
 
-// Main stays focused on orchestration so the helpers read like a real program.
+// Structs let related values travel together with clear field names.
+struct Stats {
+    total: Int
+    average: Double
+    tier: String
+}
+
+struct Profile {
+    name: String
+    level: Int
+    active: Bool
+    stats: Stats
+}
+
+// Small helpers keep `main` readable and make the tour feel like real code.
+fn section(name: String) -> String {
+    return "== " + name + " =="
+}
+
+fn sum_inclusive(limit: Int) -> Int {
+    mut total = 0
+
+    for i in 1..=limit {
+        total = total + i
+    }
+
+    return total
+}
+
+fn sum_exclusive(limit: Int) -> Int {
+    mut total = 0
+
+    for i in 0..limit {
+        total = total + i
+    }
+
+    return total
+}
+
+fn spin_until(limit: Int) -> Int {
+    mut step: Int = 0
+    mut total = 0
+
+    while step < limit {
+        total = total + step * 2
+        step = step + 1
+    }
+
+    return total
+}
+
+fn mean(left: Int, right: Int) -> Double {
+    return (left + right) / 2.0
+}
+
+fn tier_for(total: Int) -> String {
+    if total >= 15 {
+        return "expert"
+    } elif total >= 8 {
+        return "steady"
+    } else {
+        return "starter"
+    }
+}
+
+fn build_stats(rounds: Int) -> Stats {
+    const total = sum_inclusive(rounds)
+    const average = total * 1.0 / rounds
+    return Stats { total: total, average: average, tier: tier_for(total) }
+}
+
+fn make_profile(name: String, rounds: Int) -> Profile {
+    return Profile {
+        name: name,
+        level: 1,
+        active: false,
+        stats: build_stats(rounds)
+    }
+}
+
+fn promote(profile: Profile, bonus: Int) -> Profile {
+    mut next = profile
+    next.level = next.level + bonus
+    next.active = next.level >= 2
+    return next
+}
+
+fn summary(profile: Profile) -> String {
+    if profile.active and profile.stats.total >= 10 {
+        return profile.name + " looks ready"
+    } elif profile.active {
+        return profile.name + " is improving"
+    } else {
+        return profile.name + " is warming up"
+    }
+}
+
 fn main() -> Int {
-    print(REPORT_TITLE)
-    print("Day: " + DAY_LABEL)
-    print("Brand code: " + BRAND_CODE)
-    print(SUPPLIER_NOTE)
+    print(section(TITLE))
+    print(TAGLINE)
+    print("slice from the title")
+    print(TITLE_SLICE)
+    print("title width")
+    print(TITLE_WIDTH)
+    print("contains Rivel")
+    print(HAS_RIVEL)
+    print("starts and ends well")
+    print(LOOKS_POLISHED)
 
-    const total_drinks = total_drinks_sold()
-    const pastry_batches: Int = estimate_pastry_batches(PASTRIES_SOLD)
-    const bean_bags_used = BEAN_BAGS_OPEN - BEAN_BAGS_LEFT
-    const drink_total = drink_revenue(total_drinks)
-    const pastry_total: Double = pastry_revenue(PASTRIES_SOLD)
-    const gross_total = drink_total + pastry_total
-    const hourly_average = average_revenue_per_hour(gross_total)
-    const status = closing_status(total_drinks, gross_total, BEAN_BAGS_LEFT)
-    const checklist_count: Int = 3
-    const report_result = emit_report(
-        total_drinks,
-        pastry_batches,
-        bean_bags_used,
-        drink_total,
-        pastry_total,
-        gross_total,
-        hourly_average,
-        status,
-        checklist_count
-    )
+    print(section("loops and numbers"))
+    const inclusive = sum_inclusive(5)
+    const exclusive = sum_exclusive(5)
+    const spun = spin_until(4)
+    const blended = mean(inclusive, exclusive + spun)
+    print("inclusive for total")
+    print(inclusive)
+    print("exclusive for total")
+    print(exclusive)
+    print("while total")
+    print(spun)
+    print("double mean")
+    print(blended)
 
-    if report_result != 0 {
-        return report_result
-    }
+    print(section("structs and functions"))
+    const rookie = make_profile("Nova", 4)
+    const upgraded = promote(rookie, 2)
+    print(upgraded.name)
+    print(upgraded.level)
+    print(upgraded.active)
+    print(upgraded.stats.tier)
+    print(upgraded.stats.total)
+    print(upgraded.stats.average)
+    print(summary(upgraded))
 
-    print("Tomorrow checklist")
-    const printed_checklist_count = print_tomorrow_checklist()
-
-    if printed_checklist_count == checklist_count {
-        return 0
-    } else {
-        return 1
-    }
-}
-
-// Numeric helpers show how small report calculations can stay simple and typed.
-fn total_drinks_sold() -> Int {
-    return MORNING_DRINKS + AFTERNOON_DRINKS + EVENING_DRINKS
-}
-
-fn estimate_pastry_batches(pastries: Int) -> Int {
-    const batch_capacity = 8
-    mut batches = 0
-    mut covered = 0
-
-    while covered < pastries {
-        batches = batches + 1
-        covered = covered + batch_capacity
-    }
-
-    return batches
-}
-
-fn drink_revenue(drinks: Int) -> Double {
-    return drinks * DRINK_PRICE
-}
-
-fn pastry_revenue(pastries: Int) -> Double {
-    return pastries * PASTRY_PRICE
-}
-
-fn average_revenue_per_hour(total_revenue: Double) -> Double {
-    return total_revenue / HOURS_OPEN
-}
-
-// String helpers and status messages make the printed report feel like a program.
-fn closing_status(total_drinks: Int, gross_revenue: Double, bean_bags_left: Int) -> String {
-    if total_drinks >= DRINK_TARGET and gross_revenue >= 800.0 {
-        return "Strong close: the cafe beat its drink target and cleared a healthy night."
-    } elif bean_bags_left <= 2 or not NOTE_HAS_MILK {
-        return "Watch inventory: sales were solid, but morning prep needs attention."
-    } else {
-        return "Missed target: the opener should push breakfast traffic harder tomorrow."
-    }
-}
-
-fn emit_report(total_drinks: Int, pastry_batches: Int, bean_bags_used: Int, drink_total: Double, pastry_total: Double, gross_total: Double, hourly_average: Double, status: String, checklist_count: Int) -> Int {
-    print("Operations totals")
-    print("Day label width")
-    print(DAY_LABEL_WIDTH)
-    print("Drinks sold")
-    print(total_drinks)
-    print("Pastries sold")
-    print(PASTRIES_SOLD)
-    print("Pastry batches baked")
-    print(pastry_batches)
-    print("Bean bags used")
-    print(bean_bags_used)
-
-    print("Financial summary")
-    print("Drink revenue")
-    print(drink_total)
-    print("Pastry revenue")
-    print(pastry_total)
-    print("Gross revenue")
-    print(gross_total)
-    print("Average revenue per hour")
-    print(hourly_average)
-
-    print("Closing status")
-    print(status)
-    print("Supplier note mentions milk")
-    print(NOTE_HAS_MILK)
-    print("Cafe name starts correctly")
-    print(BRAND_LOOKS_RIGHT)
-    print("Cafe name ends correctly")
-    print(NAME_HAS_ROASTERS)
-    print("Checklist items planned")
-    print(checklist_count)
     return 0
-}
-
-// A small for-loop keeps tomorrow's prep readable without needing extra data types.
-fn checklist_line(step: Int) -> String {
-    if step == 1 {
-        return "1. Restock oat milk and label the morning fridge."
-    } elif step == 2 {
-        return "2. Grind the first hopper and stage pastry bags."
-    } else {
-        return "3. Write the weekend special board before the first rush."
-    }
-}
-
-fn print_tomorrow_checklist() -> Int {
-    mut printed = 0
-
-    for step in 1..=3 {
-        print(checklist_line(step))
-        printed = printed + 1
-    }
-
-    return printed
 }
