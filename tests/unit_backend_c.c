@@ -184,10 +184,64 @@ static void test_c_backend_emits_double_types_and_print_helper(void) {
     arena_free(&arena);
 }
 
+static void test_c_backend_emits_string_runtime_and_release_aware_lowering(void) {
+    Arena arena;
+    CompileError error;
+    TokenList tokens;
+    Program program;
+    SemanticResult *result;
+    StrBuf output;
+    const char *generated_c;
+
+    arena_init(&arena, 4096U);
+    error_init(&error);
+    token_list_init(&tokens, &arena);
+    decl_list_init(&program.decls, &arena);
+    strbuf_init(&output);
+
+    assert(tokenize_source(
+        "const GREETING: String = \"hello\"\n"
+        "fn decorate(value: String) -> String {\n"
+        "    return value + \"!\"\n"
+        "}\n"
+        "fn main() -> Int {\n"
+        "    mut message = GREETING\n"
+        "    if true {\n"
+        "        const message = decorate(message)\n"
+        "        print(message)\n"
+        "    }\n"
+        "    message = decorate(message)\n"
+        "    return len(message)\n"
+        "}\n",
+        &arena,
+        &tokens,
+        &error));
+    assert(parse_program(&tokens, &arena, &program, &error));
+
+    result = semantic_result_create(&arena, &error);
+    assert(result != NULL);
+    assert(semantic_analyze(&program, result, &error));
+    assert(c_backend_generate(&program, result, &arena, &output, &error));
+
+    generated_c = strbuf_cstr(&output);
+    assert(strstr(generated_c, "typedef struct RivelStringStorage RivelStringStorage;") != NULL);
+    assert(strstr(generated_c, "rivel_string_concat_take") != NULL);
+    assert(strstr(generated_c, "rivel_string_release") != NULL);
+    assert(strstr(generated_c, "rivel_string_retain") != NULL);
+    assert(strstr(generated_c, "rivel_print_string_take") != NULL);
+    assert(strstr(generated_c, "rivel_string_release(rivel_local_message_0);") != NULL);
+
+    semantic_result_dispose(result);
+    strbuf_free(&output);
+    error_free(&error);
+    arena_free(&arena);
+}
+
 int main(void) {
     test_c_backend_uses_semantic_queries();
     test_c_backend_emits_runtime_helpers_and_unique_shadowed_locals();
     test_c_backend_captures_for_range_bounds_once();
     test_c_backend_emits_double_types_and_print_helper();
+    test_c_backend_emits_string_runtime_and_release_aware_lowering();
     return 0;
 }

@@ -7,6 +7,28 @@ static char *backend_range_name(Backend *backend, const char *prefix) {
     return name;
 }
 
+static bool backend_emit_return_stmt(Backend *backend, const Expr *value_expr) {
+    Type value_type;
+    char *value;
+    char *temp_name;
+
+    if (!backend_expr_type_checked(backend, value_expr, &value_type)) {
+        return false;
+    }
+    value = backend_emit_expr(backend, value_expr);
+    temp_name = backend_temp_name(backend, "return_value");
+    if (value == NULL || temp_name == NULL) {
+        return false;
+    }
+    if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s %s = %s;", backend_c_type(value_type), temp_name, value))) {
+        return false;
+    }
+    if (!backend_emit_all_scope_releases(backend)) {
+        return false;
+    }
+    return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "return %s;", temp_name));
+}
+
 char *backend_function_signature(Backend *backend, const Decl *decl) {
     StrBuf buf;
     size_t index = 0U;
@@ -66,9 +88,26 @@ bool backend_emit_call_stmt(Backend *backend, const Expr *call_expr) {
         if (arg_type.kind == TYPE_DOUBLE) {
             return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_print_double(%s);", value));
         }
+        if (arg_type.kind == TYPE_STRING) {
+            return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_print_string_take(%s);", value));
+        }
         return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_print_int(%s);", value));
     }
-    return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s;", backend_emit_expr(backend, call_expr)));
+
+    Type call_type;
+    char *value;
+
+    if (!backend_expr_type_checked(backend, call_expr, &call_type)) {
+        return false;
+    }
+    value = backend_emit_expr(backend, call_expr);
+    if (value == NULL) {
+        return false;
+    }
+    if (call_type.kind == TYPE_STRING) {
+        return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_string_release(%s);", value));
+    }
+    return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s;", value));
 }
 
 bool backend_emit_block(Backend *backend, const Block *block) {
@@ -84,6 +123,9 @@ bool backend_emit_block(Backend *backend, const Block *block) {
         }
         index += 1U;
     }
+    if (!backend_emit_scope_releases(backend, backend_scope_stack_len(&backend->scopes) - 1U)) {
+        return false;
+    }
     backend_pop_scope(backend);
     return true;
 }
@@ -96,8 +138,8 @@ bool backend_emit_stmt(Backend *backend, const Stmt *stmt) {
 
         if (stmt->as.binding.has_annotation) {
             type = stmt->as.binding.annotation;
-        } else if (!semantic_expr_type(backend->semantics, stmt->as.binding.initializer, &type)) {
-            return error_set(backend->error, "Backend", "Internal error: missing semantic type for binding initializer");
+        } else if (!backend_expr_type_checked(backend, stmt->as.binding.initializer, &type)) {
+            return false;
         }
         if (c_name == NULL || value == NULL) {
             return false;
@@ -108,20 +150,32 @@ bool backend_emit_stmt(Backend *backend, const Stmt *stmt) {
         return backend_add_local(backend, stmt->as.binding.name, c_name, type);
     }
     if (stmt->kind == STMT_ASSIGN) {
+        const LocalBinding *binding = backend_resolve_local(backend, stmt->as.assign.name);
         char *name = backend_resolve_name(backend, stmt->as.assign.name);
         char *value = backend_emit_expr(backend, stmt->as.assign.value);
 
+        if (binding == NULL) {
+            return error_set(backend->error, "Backend", "Internal error: unresolved assignment target `%.*s` during C emission", (int)stmt->as.assign.name.len, stmt->as.assign.name.data);
+        }
         if (name == NULL || value == NULL) {
             return false;
+        }
+        if (binding->type.kind == TYPE_STRING) {
+            char *temp_name = backend_temp_name(backend, "assign_value");
+
+            if (temp_name == NULL) {
+                return false;
+            }
+            if (!backend_emit_line(backend, arena_printf(backend->arena, backend->error, "RivelString %s = %s;", temp_name, value))
+                || !backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_string_release(%s);", name))) {
+                return false;
+            }
+            return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s = %s;", name, temp_name));
         }
         return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s = %s;", name, value));
     }
     if (stmt->kind == STMT_RETURN) {
-        char *value = backend_emit_expr(backend, stmt->as.ret.value);
-        if (value == NULL) {
-            return false;
-        }
-        return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "return %s;", value));
+        return backend_emit_return_stmt(backend, stmt->as.ret.value);
     }
     if (stmt->kind == STMT_CALL) {
         return backend_emit_call_stmt(backend, stmt->as.call.call);

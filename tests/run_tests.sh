@@ -248,10 +248,13 @@ run_clean_success_test "equality_condition" "$SCRIPT_DIR/pass_equality_condition
 run_stdout_test  "print_int"           "$SCRIPT_DIR/pass_print_int.rivel"            7 $'42'
 run_stdout_test  "print_bool"          "$SCRIPT_DIR/pass_print_bool.rivel"           0 $'true\nfalse'
 run_stdout_test  "doubles"             "$SCRIPT_DIR/pass_doubles.rivel"              0 $'3.5\n2.25\ntrue\ntrue'
+run_stdout_test  "string_features"     "$SCRIPT_DIR/pass_string_features.rivel"      5 $'hello world\nworld\ntrue\ntrue\ntrue\nworld!'
+run_stdout_test  "string_bindings"     "$SCRIPT_DIR/pass_string_bindings.rivel"      2 $'ab\nac'
 
 echo ""
 echo "--- Runtime Errors ---"
 run_runtime_error_test "division_by_zero" "$SCRIPT_DIR/runtime_div_zero.rivel"       1 "division by zero"
+run_runtime_error_test "substr_out_of_range" "$SCRIPT_DIR/runtime_substr_oob.rivel" 1 "substring out of range"
 
 echo ""
 echo "--- Compile Failures ---"
@@ -267,13 +270,16 @@ run_compile_fail_test "int_literal_overflow" "$SCRIPT_DIR/fail/int_literal_overf
 run_compile_fail_test "type_mismatch_assign" "$SCRIPT_DIR/fail/type_mismatch_assign.rivel"   "Cannot assign value of type Bool to Int"
 run_compile_fail_test "type_mismatch_double_assign" "$SCRIPT_DIR/fail/type_mismatch_double_assign.rivel" "Cannot assign value of type Double to Int"
 run_compile_fail_test "type_mismatch_return" "$SCRIPT_DIR/fail/type_mismatch_return.rivel"   "Return type mismatch: expected Int but got Bool"
-run_compile_fail_test "type_mismatch_op"     "$SCRIPT_DIR/fail/type_mismatch_operator.rivel" "Operator \`+\` expects Int operands"
+run_compile_fail_test "type_mismatch_op"     "$SCRIPT_DIR/fail/type_mismatch_operator.rivel" "Operator \`+\` expects numeric operands or String operands"
+run_compile_fail_test "type_mismatch_string_op" "$SCRIPT_DIR/fail/type_mismatch_string_operator.rivel" "Operator \`+\` expects numeric operands or String operands"
 run_compile_fail_test "type_mismatch_double_mod" "$SCRIPT_DIR/fail/type_mismatch_double_mod.rivel" "Operator \`%\` expects Int operands"
 run_compile_fail_test "duplicate_scope"      "$SCRIPT_DIR/fail/duplicate_same_scope.rivel"   "Binding \`x\` is already declared in this scope"
 run_compile_fail_test "reserved_print"       "$SCRIPT_DIR/fail/redefine_print.rivel"         "Top-level name \`print\` is reserved for a builtin"
 run_compile_fail_test "unsupported_import"   "$SCRIPT_DIR/fail/unsupported_import.rivel"     "Rivel v1 does not support \`import\`"
-run_compile_fail_test "unsupported_string"   "$SCRIPT_DIR/fail/unsupported_string.rivel"     "String literals are not part of Rivel v1"
 run_compile_fail_test "unsupported_double_exponent" "$SCRIPT_DIR/fail/unsupported_double_exponent.rivel" "Exponent notation is not part of Rivel v1 doubles"
+run_compile_fail_test "invalid_string_escape" "$SCRIPT_DIR/fail/invalid_string_escape.rivel" "Unsupported escape sequence"
+run_compile_fail_test "builtin_arity_len"    "$SCRIPT_DIR/fail/builtin_arity_len.rivel"      "Builtin \`len\` expects 1 argument(s)"
+run_compile_fail_test "builtin_type_contains" "$SCRIPT_DIR/fail/builtin_type_contains.rivel"  "Argument 2 to builtin \`contains\` has type Int, expected String"
 run_compile_fail_test "unsupported_list"     "$SCRIPT_DIR/fail/unsupported_list.rivel"       "List syntax is not part of Rivel v1"
 run_compile_fail_test "for_start_not_int"    "$SCRIPT_DIR/fail/for_start_not_int.rivel"      "For range start must be Int"
 run_compile_fail_test "for_end_not_int"      "$SCRIPT_DIR/fail/for_end_not_int.rivel"        "For range end must be Int"

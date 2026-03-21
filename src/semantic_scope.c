@@ -131,6 +131,7 @@ ConstValue semantic_make_double(double value) {
     out.int_value = 0;
     out.double_value = value;
     out.bool_value = false;
+    out.string_value = slice_from_parts(NULL, 0U);
     return out;
 }
 
@@ -141,6 +142,17 @@ ConstValue semantic_make_bool(bool value) {
     out.int_value = 0;
     out.double_value = 0.0;
     out.bool_value = value;
+    out.string_value = slice_from_parts(NULL, 0U);
+    return out;
+}
+
+ConstValue semantic_make_string(StrSlice value) {
+    ConstValue out;
+
+    out.type.kind = TYPE_STRING;
+    out.int_value = 0;
+    out.bool_value = false;
+    out.string_value = value;
     return out;
 }
 
@@ -311,13 +323,36 @@ const SemanticBuiltinInfo *analyzer_lookup_builtin(const Analyzer *analyzer, Str
 }
 
 bool analyzer_register_builtins(Analyzer *analyzer) {
-    SemanticBuiltinInfo *builtin = semantic_builtin_table_push(&analyzer->result->builtins, analyzer->error);
-    if (builtin == NULL) {
-        return false;
+    static const struct {
+        const char *name;
+        BuiltinKind kind;
+    } builtin_specs[] = {
+        {"print", BUILTIN_PRINT},
+        {"len", BUILTIN_LEN},
+        {"substr", BUILTIN_SUBSTR},
+        {"contains", BUILTIN_CONTAINS},
+        {"starts_with", BUILTIN_STARTS_WITH},
+        {"ends_with", BUILTIN_ENDS_WITH},
+    };
+    size_t index = 0U;
+
+    while (index < sizeof(builtin_specs) / sizeof(builtin_specs[0])) {
+        SemanticBuiltinInfo *builtin = semantic_builtin_table_push(&analyzer->result->builtins, analyzer->error);
+
+        if (builtin == NULL) {
+            return false;
+        }
+        builtin->kind = builtin_specs[index].kind;
+        if (!semantic_symbol_table_set(&analyzer->result->builtin_names,
+                                       slice_from_cstr(builtin_specs[index].name),
+                                       semantic_builtin_table_len(&analyzer->result->builtins) - 1U,
+                                       analyzer->error)) {
+            return false;
+        }
+        index += 1U;
     }
 
-    builtin->kind = BUILTIN_PRINT;
-    return semantic_symbol_table_set(&analyzer->result->builtin_names, slice_from_cstr("print"), 0U, analyzer->error);
+    return true;
 }
 
 static bool analyzer_ensure_unique_top_level_name(Analyzer *analyzer, Token token, StrSlice name) {

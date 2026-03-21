@@ -17,6 +17,7 @@ typedef struct {
     int64_t int_value;
     double double_value;
     bool bool_value;
+    StrSlice string_value;
 } ConstValue;
 
 typedef struct {
@@ -30,7 +31,12 @@ typedef struct {
 } SemanticFunctionInfo;
 
 typedef enum {
-    BUILTIN_PRINT
+    BUILTIN_PRINT,
+    BUILTIN_LEN,
+    BUILTIN_SUBSTR,
+    BUILTIN_CONTAINS,
+    BUILTIN_STARTS_WITH,
+    BUILTIN_ENDS_WITH
 } BuiltinKind;
 
 typedef struct {

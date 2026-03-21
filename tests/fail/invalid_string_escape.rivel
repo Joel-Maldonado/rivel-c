@@ -1,4 +1,4 @@
 fn main() -> Int {
-    const msg = "hi"
+    const value = "bad\x"
     return 0
 }

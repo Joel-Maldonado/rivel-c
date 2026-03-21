@@ -10,7 +10,8 @@
 typedef enum {
     TYPE_INT,
     TYPE_DOUBLE,
-    TYPE_BOOL
+    TYPE_BOOL,
+    TYPE_STRING
 } TypeKind;
 
 typedef struct {
@@ -53,6 +54,7 @@ typedef enum {
     EXPR_INT,
     EXPR_DOUBLE,
     EXPR_BOOL,
+    EXPR_STRING,
     EXPR_NAME,
     EXPR_UNARY,
     EXPR_BINARY,
@@ -66,6 +68,7 @@ struct Expr {
         int64_t int_value;
         double double_value;
         bool bool_value;
+        StrSlice string_value;
         StrSlice name;
         struct {
             TokenType op;

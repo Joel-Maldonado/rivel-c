@@ -89,6 +89,7 @@ size_t semantic_map_index(uintptr_t value);
 ConstValue semantic_make_int(int64_t value);
 ConstValue semantic_make_double(double value);
 ConstValue semantic_make_bool(bool value);
+ConstValue semantic_make_string(StrSlice value);
 
 void binding_table_init(BindingTable *table);
 void binding_table_free(BindingTable *table);

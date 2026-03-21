@@ -56,10 +56,12 @@ void backend_scope_stack_pop(BackendScopeStack *stack) {
 
 bool backend_push_scope(Backend *backend) {
     BackendScope *scope = backend_scope_stack_push(&backend->scopes, backend->error);
+
     if (scope == NULL) {
         return false;
     }
     backend_binding_table_init(&scope->bindings);
+    vec_init(&scope->ordered_bindings, sizeof(const LocalBinding *), NULL);
     return true;
 }
 
@@ -71,6 +73,7 @@ void backend_pop_scope(Backend *backend) {
     }
     scope = backend_scope_stack_get(&backend->scopes, backend_scope_stack_len(&backend->scopes) - 1U);
     backend_binding_table_free(&scope->bindings);
+    vec_free(&scope->ordered_bindings);
     backend_scope_stack_pop(&backend->scopes);
 }
 
@@ -119,6 +122,8 @@ const char *backend_c_type(Type type) {
             return "double";
         case TYPE_BOOL:
             return "bool";
+        case TYPE_STRING:
+            return "RivelString";
     }
     return "<type>";
 }
@@ -162,6 +167,13 @@ char *backend_local_name(Backend *backend, StrSlice name) {
     return out;
 }
 
+char *backend_temp_name(Backend *backend, const char *base) {
+    char *out = arena_printf(backend->arena, backend->error, "rivel_%s_%zu", base, backend->next_local_id);
+
+    backend->next_local_id += 1U;
+    return out;
+}
+
 const LocalBinding *backend_resolve_local(const Backend *backend, StrSlice name) {
     size_t index = backend_scope_stack_len(&backend->scopes);
 
@@ -193,13 +205,127 @@ char *backend_resolve_name(Backend *backend, StrSlice name) {
 bool backend_add_local(Backend *backend, StrSlice name, const char *c_name, Type type) {
     BackendScope *scope = backend_scope_stack_get(&backend->scopes, backend_scope_stack_len(&backend->scopes) - 1U);
     LocalBinding *binding = (LocalBinding *)arena_alloc_zero(backend->arena, sizeof(*binding), _Alignof(LocalBinding), backend->error);
+    const LocalBinding **ordered_binding;
 
     if (binding == NULL) {
         return false;
     }
     binding->c_name = c_name;
     binding->type = type;
-    return backend_binding_table_set(&scope->bindings, name, binding, backend->error);
+    if (!backend_binding_table_set(&scope->bindings, name, binding, backend->error)) {
+        return false;
+    }
+
+    ordered_binding = (const LocalBinding **)vec_push(&scope->ordered_bindings, backend->error);
+    if (ordered_binding == NULL) {
+        return false;
+    }
+    *ordered_binding = binding;
+    return true;
+}
+
+bool backend_expr_type_checked(Backend *backend, const Expr *expr, Type *out_type) {
+    if (!semantic_expr_type(backend->semantics, expr, out_type)) {
+        return error_set(backend->error, "Backend", "Internal error: missing semantic type for emitted expression");
+    }
+    return true;
+}
+
+bool backend_emit_scope_releases(Backend *backend, size_t scope_index) {
+    BackendScope *scope = backend_scope_stack_get(&backend->scopes, scope_index);
+
+    while (scope->ordered_bindings.len > 0U) {
+        const LocalBinding *binding = *(const LocalBinding **)vec_get(&scope->ordered_bindings, scope->ordered_bindings.len - 1U);
+
+        if (binding->type.kind == TYPE_STRING
+            && !backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_string_release(%s);", binding->c_name))) {
+            return false;
+        }
+        scope->ordered_bindings.len -= 1U;
+    }
+    return true;
+}
+
+bool backend_emit_all_scope_releases(Backend *backend) {
+    size_t index = backend_scope_stack_len(&backend->scopes);
+
+    while (index > 0U) {
+        if (!backend_emit_scope_releases(backend, index - 1U)) {
+            return false;
+        }
+        index -= 1U;
+    }
+    return true;
+}
+
+char *backend_string_literal_value(Backend *backend, StrSlice value) {
+    StrBuf buf;
+    size_t index = 0U;
+    char *copy;
+
+    strbuf_init(&buf);
+    if (value.len == 0U) {
+        if (!strbuf_append_cstr(&buf, "\"\"", backend->error)) {
+            strbuf_free(&buf);
+            return NULL;
+        }
+    }
+
+    while (index < value.len) {
+        unsigned char byte = (unsigned char)value.data[index];
+
+        if (index > 0U && !strbuf_append_char(&buf, ' ', backend->error)) {
+            strbuf_free(&buf);
+            return NULL;
+        }
+        if (!strbuf_append_char(&buf, '"', backend->error)) {
+            strbuf_free(&buf);
+            return NULL;
+        }
+        if (byte == '\\') {
+            if (!strbuf_append_cstr(&buf, "\\\\", backend->error)) {
+                strbuf_free(&buf);
+                return NULL;
+            }
+        } else if (byte == '"') {
+            if (!strbuf_append_cstr(&buf, "\\\"", backend->error)) {
+                strbuf_free(&buf);
+                return NULL;
+            }
+        } else if (byte == '\n') {
+            if (!strbuf_append_cstr(&buf, "\\n", backend->error)) {
+                strbuf_free(&buf);
+                return NULL;
+            }
+        } else if (byte == '\r') {
+            if (!strbuf_append_cstr(&buf, "\\r", backend->error)) {
+                strbuf_free(&buf);
+                return NULL;
+            }
+        } else if (byte == '\t') {
+            if (!strbuf_append_cstr(&buf, "\\t", backend->error)) {
+                strbuf_free(&buf);
+                return NULL;
+            }
+        } else if (byte >= 32U && byte <= 126U) {
+            if (!strbuf_append_char(&buf, (char)byte, backend->error)) {
+                strbuf_free(&buf);
+                return NULL;
+            }
+        } else if (!strbuf_append_fmt(&buf, backend->error, "\\x%02X", (unsigned int)byte)) {
+            strbuf_free(&buf);
+            return NULL;
+        }
+        if (!strbuf_append_char(&buf, '"', backend->error)) {
+            strbuf_free(&buf);
+            return NULL;
+        }
+        index += 1U;
+    }
+
+    copy = arena_copy_cstr(backend->arena, strbuf_cstr(&buf), backend->error);
+    strbuf_free(&buf);
+    return copy;
 }
 
 char *backend_literal(Backend *backend, ConstValue value) {
@@ -208,6 +334,14 @@ char *backend_literal(Backend *backend, ConstValue value) {
     }
     if (value.type.kind == TYPE_DOUBLE) {
         return backend_double_literal(backend, value.double_value);
+    }
+    if (value.type.kind == TYPE_STRING) {
+        char *literal = backend_string_literal_value(backend, value.string_value);
+
+        if (literal == NULL) {
+            return NULL;
+        }
+        return arena_printf(backend->arena, backend->error, "(RivelString){%s, %zu, NULL}", literal, value.string_value.len);
     }
     return arena_printf(backend->arena, backend->error, "INT64_C(%lld)", (long long)value.int_value);
 }
