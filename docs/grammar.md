@@ -68,19 +68,14 @@ Int  Double  Bool  String
 true  false
 ```
 
-The lexer also rejects several legacy or unsupported words early, including
-`let`, `exit`, `import`, and `from`.
-
 ### Literals
 
-Rivel v1 supports:
+Rivel supports:
 
 - decimal integer literals, stored as signed 64-bit `Int`
 - decimal double literals with a required decimal point, such as `1.0`, `0.5`, and `10.`
 - boolean literals: `true`, `false`
 - string literals in double quotes
-
-Exponent notation such as `1e3` is not part of Rivel v1 doubles.
 
 Strings are immutable UTF-8 byte sequences. Supported escapes are:
 
