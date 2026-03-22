@@ -1,0 +1,9 @@
+fn main() -> Int {
+    const name = "Nova"
+    const count = 2
+    print("Hello, ${name}! count=")
+    println(count + 1)
+    println("ready=${true}")
+    println("tab:\t${name}")
+    return 0
+}

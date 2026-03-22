@@ -251,6 +251,7 @@ run_stdout_test  "print_bool"          "$SCRIPT_DIR/pass_print_bool.rivel"      
 run_stdout_test  "doubles"             "$SCRIPT_DIR/pass_doubles.rivel"              0 $'3.5\n2.25\ntrue\ntrue'
 run_stdout_test  "string_features"     "$SCRIPT_DIR/pass_string_features.rivel"      5 $'hello world\nworld\ntrue\ntrue\ntrue\nworld!'
 run_stdout_test  "string_bindings"     "$SCRIPT_DIR/pass_string_bindings.rivel"      2 $'ab\nac'
+run_stdout_test  "interpolated_output" "$SCRIPT_DIR/pass_interpolated_output.rivel"  0 $'Hello, Nova! count=3\nready=true\ntab:\tNova'
 run_success_test "struct_field_assign" "$SCRIPT_DIR/pass_struct_field_assign.rivel"  24
 run_success_test "struct_nested_return" "$SCRIPT_DIR/pass_struct_nested_return.rivel" 42
 
@@ -279,9 +280,13 @@ run_compile_fail_test "type_mismatch_string_op" "$SCRIPT_DIR/fail/type_mismatch_
 run_compile_fail_test "type_mismatch_double_mod" "$SCRIPT_DIR/fail/type_mismatch_double_mod.rivel" "Operator \`%\` expects Int operands"
 run_compile_fail_test "duplicate_scope"      "$SCRIPT_DIR/fail/duplicate_same_scope.rivel"   "Binding \`x\` is already declared in this scope"
 run_compile_fail_test "reserved_print"       "$SCRIPT_DIR/fail/redefine_print.rivel"         "Top-level name \`print\` is reserved for a builtin"
+run_compile_fail_test "reserved_println"     "$SCRIPT_DIR/fail/redefine_println.rivel"       "Top-level name \`println\` is reserved for a builtin"
 run_compile_fail_test "unsupported_import"   "$SCRIPT_DIR/fail/unsupported_import.rivel"     "Rivel v1 does not support \`import\`"
 run_compile_fail_test "unsupported_double_exponent" "$SCRIPT_DIR/fail/unsupported_double_exponent.rivel" "Exponent notation is not part of Rivel v1 doubles"
 run_compile_fail_test "invalid_string_escape" "$SCRIPT_DIR/fail/invalid_string_escape.rivel" "Unsupported escape sequence"
+run_compile_fail_test "unterminated_interpolation" "$SCRIPT_DIR/fail/unterminated_interpolation.rivel" "Unterminated string literal"
+run_compile_fail_test "println_expression"   "$SCRIPT_DIR/fail/println_expression.rivel"     "Builtin \`println\` cannot be used as an expression"
+run_compile_fail_test "interpolate_struct_value" "$SCRIPT_DIR/fail/interpolate_struct_value.rivel" "String interpolation does not support argument type Person"
 run_compile_fail_test "builtin_arity_len"    "$SCRIPT_DIR/fail/builtin_arity_len.rivel"      "Builtin \`len\` expects 1 argument(s)"
 run_compile_fail_test "builtin_type_contains" "$SCRIPT_DIR/fail/builtin_type_contains.rivel"  "Argument 2 to builtin \`contains\` has type Int, expected String"
 run_compile_fail_test "unsupported_list"     "$SCRIPT_DIR/fail/unsupported_list.rivel"       "List syntax is not part of Rivel v1"

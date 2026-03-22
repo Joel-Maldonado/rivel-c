@@ -363,11 +363,110 @@ static bool backend_emit_runtime_string_helpers(Backend *backend) {
 
 static bool backend_emit_runtime_print_helpers(Backend *backend) {
     if (!backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static RivelString rivel_string_from_int(int64_t value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "char buffer[32];")
+        || !backend_emit_line(backend, "int len = snprintf(buffer, sizeof(buffer), \"%lld\", (long long)value);")
+        || !backend_emit_line(backend, "if (len < 0) {")
+        || !backend_emit_line(backend, "    fputs(\"failed to format int\\n\", stderr);")
+        || !backend_emit_line(backend, "    exit(1);")
+        || !backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "return rivel_string_copy(buffer, (size_t)len);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static RivelString rivel_string_from_bool(bool value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "return rivel_string_copy(value ? \"true\" : \"false\", value ? 4U : 5U);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static RivelString rivel_string_from_double(double value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "char buffer[64];")
+        || !backend_emit_line(backend, "int len = snprintf(buffer, sizeof(buffer), \"%.17g\", value);")
+        || !backend_emit_line(backend, "if (len < 0) {")
+        || !backend_emit_line(backend, "    fputs(\"failed to format double\\n\", stderr);")
+        || !backend_emit_line(backend, "    exit(1);")
+        || !backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "return rivel_string_copy(buffer, (size_t)len);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static void rivel_write_string(RivelString value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "if (value.len > 0U) {")
+        || !backend_emit_line(backend, "    fwrite(value.data, 1U, value.len, stdout);")
+        || !backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "rivel_string_release(value);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static void rivel_print_int_inline(int64_t value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "RivelString text = rivel_string_from_int(value);")
+        || !backend_emit_line(backend, "rivel_write_string(text);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static void rivel_println_int(int64_t value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "rivel_print_int_inline(value);")
+        || !backend_emit_line(backend, "fputc('\\n', stdout);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
         || !backend_emit_line(backend, "static void rivel_print_int(int64_t value) {")) {
         return false;
     }
     backend_indent_push(backend);
-    if (!backend_emit_line(backend, "printf(\"%lld\\n\", (long long)value);")) {
+    if (!backend_emit_line(backend, "rivel_println_int(value);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static void rivel_print_bool_inline(bool value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "RivelString text = rivel_string_from_bool(value);")
+        || !backend_emit_line(backend, "rivel_write_string(text);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static void rivel_println_bool(bool value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "rivel_print_bool_inline(value);")
+        || !backend_emit_line(backend, "fputc('\\n', stdout);")) {
         return false;
     }
     backend_indent_pop(backend);
@@ -377,7 +476,29 @@ static bool backend_emit_runtime_print_helpers(Backend *backend) {
         return false;
     }
     backend_indent_push(backend);
-    if (!backend_emit_line(backend, "puts(value ? \"true\" : \"false\");")) {
+    if (!backend_emit_line(backend, "rivel_println_bool(value);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static void rivel_print_double_inline(double value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "RivelString text = rivel_string_from_double(value);")
+        || !backend_emit_line(backend, "rivel_write_string(text);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static void rivel_println_double(double value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "rivel_print_double_inline(value);")
+        || !backend_emit_line(backend, "fputc('\\n', stdout);")) {
         return false;
     }
     backend_indent_pop(backend);
@@ -387,7 +508,28 @@ static bool backend_emit_runtime_print_helpers(Backend *backend) {
         return false;
     }
     backend_indent_push(backend);
-    if (!backend_emit_line(backend, "printf(\"%.17g\\n\", value);")) {
+    if (!backend_emit_line(backend, "rivel_println_double(value);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static void rivel_print_string_take_inline(RivelString value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "rivel_write_string(value);")) {
+        return false;
+    }
+    backend_indent_pop(backend);
+    if (!backend_emit_line(backend, "}")
+        || !backend_emit_line(backend, "")
+        || !backend_emit_line(backend, "static void rivel_println_string_take(RivelString value) {")) {
+        return false;
+    }
+    backend_indent_push(backend);
+    if (!backend_emit_line(backend, "rivel_print_string_take_inline(value);")
+        || !backend_emit_line(backend, "fputc('\\n', stdout);")) {
         return false;
     }
     backend_indent_pop(backend);
@@ -397,11 +539,7 @@ static bool backend_emit_runtime_print_helpers(Backend *backend) {
         return false;
     }
     backend_indent_push(backend);
-    if (!backend_emit_line(backend, "if (value.len > 0U) {")
-        || !backend_emit_line(backend, "    fwrite(value.data, 1U, value.len, stdout);")
-        || !backend_emit_line(backend, "}")
-        || !backend_emit_line(backend, "fputc('\\n', stdout);")
-        || !backend_emit_line(backend, "rivel_string_release(value);")) {
+    if (!backend_emit_line(backend, "rivel_println_string_take(value);")) {
         return false;
     }
     backend_indent_pop(backend);

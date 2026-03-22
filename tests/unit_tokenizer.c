@@ -152,6 +152,61 @@ static void test_tokenize_struct_literal_and_field_access(void) {
     arena_free(&arena);
 }
 
+static void test_tokenize_string_literal_with_interpolation(void) {
+    Arena arena;
+    CompileError error;
+    TokenList tokens;
+
+    arena_init(&arena, 4096U);
+    error_init(&error);
+    token_list_init(&tokens, &arena);
+
+    assert(tokenize_source("const x = \"Hello, ${name}!\"", &arena, &tokens, &error));
+    assert(token_list_len(&tokens) == 5U);
+    assert(token_list_get_const(&tokens, 0U)->type == TOKEN_KW_CONST);
+    assert(token_list_get_const(&tokens, 1U)->type == TOKEN_IDENTIFIER);
+    assert(token_list_get_const(&tokens, 2U)->type == TOKEN_ASSIGN);
+    assert(token_list_get_const(&tokens, 3U)->type == TOKEN_STRING_LITERAL);
+    assert(token_list_get_const(&tokens, 4U)->type == TOKEN_EOF);
+
+    error_free(&error);
+    arena_free(&arena);
+}
+
+static void test_tokenize_rejects_unterminated_interpolation_in_string(void) {
+    Arena arena;
+    CompileError error;
+    TokenList tokens;
+
+    arena_init(&arena, 4096U);
+    error_init(&error);
+    token_list_init(&tokens, &arena);
+
+    assert(!tokenize_source("const x = \"Hello, ${name\"", &arena, &tokens, &error));
+    assert(error.message != NULL);
+    assert(strcmp(error.message, "Unterminated string literal") == 0);
+
+    error_free(&error);
+    arena_free(&arena);
+}
+
+static void test_tokenize_rejects_stray_closing_brace_in_string(void) {
+    Arena arena;
+    CompileError error;
+    TokenList tokens;
+
+    arena_init(&arena, 4096U);
+    error_init(&error);
+    token_list_init(&tokens, &arena);
+
+    assert(!tokenize_source("const x = \"Hello }\"", &arena, &tokens, &error));
+    assert(error.message != NULL);
+    assert(strcmp(error.message, "Unexpected `}` in string literal") == 0);
+
+    error_free(&error);
+    arena_free(&arena);
+}
+
 int main(void) {
     test_tokenize_for_range_header();
     test_tokenize_line_comment_preserves_newline_separator();
@@ -159,5 +214,8 @@ int main(void) {
     test_tokenize_slash_when_not_a_comment();
     test_tokenize_unterminated_block_comment_reports_opening_location();
     test_tokenize_struct_literal_and_field_access();
+    test_tokenize_string_literal_with_interpolation();
+    test_tokenize_rejects_unterminated_interpolation_in_string();
+    test_tokenize_rejects_stray_closing_brace_in_string();
     return 0;
 }

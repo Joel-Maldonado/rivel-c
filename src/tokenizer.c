@@ -230,32 +230,92 @@ static bool tokenizer_tokenize_number(Tokenizer *tokenizer) {
     return tokenizer_add_number_token(tokenizer, start, line, column, is_double);
 }
 
-static bool tokenizer_tokenize_string(Tokenizer *tokenizer) {
-    const char *start = tokenizer->source + tokenizer->index;
-    int line = tokenizer->line;
-    int column = tokenizer->column;
+static bool tokenizer_scan_string_literal(Tokenizer *tokenizer, int line, int column);
 
+static bool tokenizer_scan_interpolation(Tokenizer *tokenizer, int line, int column) {
+    size_t brace_depth = 1U;
+
+    while (!tokenizer_is_at_end(tokenizer)) {
+        char current = tokenizer_peek(tokenizer, 0U);
+
+        if (current == '\n') {
+            return error_set_at(tokenizer->error, "Lexer", line, column, "Unterminated string interpolation");
+        }
+        if (current == '"') {
+            if (!tokenizer_scan_string_literal(tokenizer, tokenizer->line, tokenizer->column)) {
+                return false;
+            }
+            continue;
+        }
+        if (current == '{') {
+            tokenizer_advance(tokenizer);
+            brace_depth += 1U;
+            continue;
+        }
+        if (current == '}') {
+            tokenizer_advance(tokenizer);
+            brace_depth -= 1U;
+            if (brace_depth == 0U) {
+                return true;
+            }
+            continue;
+        }
+        tokenizer_advance(tokenizer);
+    }
+
+    return error_set_at(tokenizer->error, "Lexer", line, column, "Unterminated string interpolation");
+}
+
+static bool tokenizer_scan_string_literal(Tokenizer *tokenizer, int line, int column) {
     tokenizer_advance(tokenizer);
     while (!tokenizer_is_at_end(tokenizer)) {
         char current = tokenizer_peek(tokenizer, 0U);
 
         if (current == '"') {
             tokenizer_advance(tokenizer);
-            return tokenizer_add_token(tokenizer, TOKEN_STRING_LITERAL, start, (size_t)(tokenizer->source + tokenizer->index - start), line, column);
+            return true;
         }
         if (current == '\n') {
             return error_set_at(tokenizer->error, "Lexer", line, column, "Unterminated string literal");
         }
-        tokenizer_advance(tokenizer);
         if (current == '\\') {
+            tokenizer_advance(tokenizer);
             if (tokenizer_is_at_end(tokenizer) || tokenizer_peek(tokenizer, 0U) == '\n') {
                 return error_set_at(tokenizer->error, "Lexer", line, column, "Unterminated string literal");
             }
             tokenizer_advance(tokenizer);
+            continue;
         }
+        if (current == '}') {
+            return error_set_at(tokenizer->error, "Lexer", tokenizer->line, tokenizer->column, "Unexpected `}` in string literal");
+        }
+        if (current == '$' && tokenizer_peek(tokenizer, 1U) == '{') {
+            int interp_line = tokenizer->line;
+            int interp_column = tokenizer->column;
+
+            tokenizer_advance(tokenizer);
+            tokenizer_advance(tokenizer);
+            if (!tokenizer_scan_interpolation(tokenizer, interp_line, interp_column)) {
+                return false;
+            }
+            continue;
+        }
+        tokenizer_advance(tokenizer);
     }
 
     return error_set_at(tokenizer->error, "Lexer", line, column, "Unterminated string literal");
+}
+
+static bool tokenizer_tokenize_string(Tokenizer *tokenizer) {
+    const char *start = tokenizer->source + tokenizer->index;
+    int line = tokenizer->line;
+    int column = tokenizer->column;
+
+    if (!tokenizer_scan_string_literal(tokenizer, line, column)) {
+        return false;
+    }
+
+    return tokenizer_add_token(tokenizer, TOKEN_STRING_LITERAL, start, (size_t)(tokenizer->source + tokenizer->index - start), line, column);
 }
 
 static bool tokenizer_single(Tokenizer *tokenizer, TokenType type) {

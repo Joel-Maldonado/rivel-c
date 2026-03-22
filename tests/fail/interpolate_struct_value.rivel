@@ -1,0 +1,9 @@
+struct Person {
+    name: String
+}
+
+fn main() -> Int {
+    const person = Person { name: "Nova" }
+    println("${person}")
+    return 0
+}

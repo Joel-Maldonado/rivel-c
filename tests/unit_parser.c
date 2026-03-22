@@ -248,6 +248,79 @@ static void test_parse_rejects_invalid_string_escape(void) {
         "Unsupported escape sequence");
 }
 
+static void test_parse_interpolated_string_lowers_to_string_addition(void) {
+    Arena arena;
+    Program program;
+    Decl *greet_decl;
+    Stmt *return_stmt;
+    Expr *expr;
+
+    arena_init(&arena, 4096U);
+    program = parse_source(
+        "fn greet(name: String) -> String {\n"
+        "    return \"Hello, ${name}!\"\n"
+        "}\n"
+        "fn main() -> Int {\n"
+        "    return 0\n"
+        "}\n",
+        &arena);
+
+    greet_decl = decl_list_get(&program.decls, 0U);
+    return_stmt = stmt_list_get(&greet_decl->as.function.body->statements, 0U);
+    expr = return_stmt->as.ret.value;
+
+    assert(expr->kind == EXPR_BINARY);
+    assert(expr->as.binary.op == TOKEN_PLUS);
+    assert(expr->as.binary.lhs->kind == EXPR_BINARY);
+    assert(expr->as.binary.lhs->as.binary.lhs->kind == EXPR_STRING);
+    assert(expr->as.binary.lhs->as.binary.rhs->kind == EXPR_CALL);
+    assert(expr->as.binary.rhs->kind == EXPR_STRING);
+
+    arena_free(&arena);
+}
+
+static void test_parse_interpolated_string_allows_complex_expressions(void) {
+    Arena arena;
+    Program program;
+    Decl *main_decl;
+    Stmt *binding_stmt;
+    Expr *initializer;
+
+    arena_init(&arena, 4096U);
+    program = parse_source(
+        "struct Person {\n"
+        "    name: String\n"
+        "}\n"
+        "fn decorate(value: String) -> String {\n"
+        "    return value + \"!\"\n"
+        "}\n"
+        "fn main() -> Int {\n"
+        "    const person = Person { name: \"Nova\" }\n"
+        "    const count = 1\n"
+        "    const value = \"${decorate(person.name)} ${count + 1}\"\n"
+        "    return 0\n"
+        "}\n",
+        &arena);
+
+    main_decl = decl_list_get(&program.decls, 2U);
+    binding_stmt = stmt_list_get(&main_decl->as.function.body->statements, 2U);
+    initializer = binding_stmt->as.binding.initializer;
+
+    assert(initializer->kind == EXPR_BINARY);
+    assert(initializer->as.binary.op == TOKEN_PLUS);
+
+    arena_free(&arena);
+}
+
+static void test_parse_rejects_empty_string_interpolation(void) {
+    expect_parse_failure(
+        "fn main() -> Int {\n"
+        "    const value = \"${}\"\n"
+        "    return 0\n"
+        "}\n",
+        "Expected expression");
+}
+
 static void test_parse_struct_decl_literal_access_and_assignment(void) {
     Arena arena;
     Program program;
@@ -326,6 +399,9 @@ int main(void) {
     test_parse_string_type_and_literal();
     test_parse_string_literal_escapes();
     test_parse_rejects_invalid_string_escape();
+    test_parse_interpolated_string_lowers_to_string_addition();
+    test_parse_interpolated_string_allows_complex_expressions();
+    test_parse_rejects_empty_string_interpolation();
     test_parse_struct_decl_literal_access_and_assignment();
     return 0;
 }

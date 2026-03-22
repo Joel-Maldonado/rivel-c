@@ -119,6 +119,8 @@ bool analyzer_register_builtins(Analyzer *analyzer) {
         BuiltinKind kind;
     } builtin_specs[] = {
         {"print", BUILTIN_PRINT},
+        {"println", BUILTIN_PRINTLN},
+        {"__stringify", BUILTIN_STRINGIFY},
         {"len", BUILTIN_LEN},
         {"substr", BUILTIN_SUBSTR},
         {"contains", BUILTIN_CONTAINS},

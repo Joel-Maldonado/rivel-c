@@ -109,6 +109,30 @@ static bool semantic_const_substr(Analyzer *analyzer, Token token, StrSlice valu
     return true;
 }
 
+static bool semantic_const_stringify(Analyzer *analyzer, ConstValue value, StrSlice *out_value) {
+    char *text;
+
+    if (value.type.kind == TYPE_STRING) {
+        *out_value = value.string_value;
+        return true;
+    }
+    if (value.type.kind == TYPE_BOOL) {
+        *out_value = slice_from_cstr(value.bool_value ? "true" : "false");
+        return true;
+    }
+    if (value.type.kind == TYPE_DOUBLE) {
+        text = arena_printf(analyzer->result->arena, analyzer->error, "%.17g", value.double_value);
+    } else {
+        text = arena_printf(analyzer->result->arena, analyzer->error, "%lld", (long long)value.int_value);
+    }
+    if (text == NULL) {
+        return false;
+    }
+
+    *out_value = slice_from_cstr(text);
+    return true;
+}
+
 static bool semantic_const_expect_builtin_arg_count(Analyzer *analyzer, const Expr *call_expr, size_t expected_count) {
     if (expr_list_len(&call_expr->as.call.args) != expected_count) {
         return error_set_at(analyzer->error,
@@ -160,7 +184,15 @@ static bool analyzer_evaluate_builtin_const_expr(Analyzer *analyzer, const Expr 
 
     switch (builtin_kind) {
         case BUILTIN_PRINT:
+        case BUILTIN_PRINTLN:
             return error_set_at(analyzer->error, "Semantic", call_expr->token.line, call_expr->token.column, "Top-level constants cannot call builtin `print`");
+        case BUILTIN_STRINGIFY:
+            if (!semantic_const_expect_builtin_arg_count(analyzer, call_expr, 1U)
+                || !analyzer_evaluate_const_expr(analyzer, expr_list_get(&call_expr->as.call.args, 0U), &arg0)
+                || !semantic_const_stringify(analyzer, arg0, &substr_value)) {
+                return false;
+            }
+            return semantic_record_const_result(analyzer, call_expr, const_value_make_string(substr_value), out_value);
         case BUILTIN_LEN:
             if (!semantic_const_expect_builtin_arg_count(analyzer, call_expr, 1U)
                 || !semantic_const_require_arg_type(analyzer, call_expr, 0U, string_type, &arg0)) {

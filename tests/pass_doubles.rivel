@@ -5,9 +5,9 @@ fn widen(x: Double) -> Double {
 }
 
 fn main() -> Int {
-    print(BASE)
-    print(widen(1))
-    print(1 < 2.5)
-    print(1 == 1.0)
+    println(BASE)
+    println(widen(1))
+    println(1 < 2.5)
+    println(1 == 1.0)
     return 0
 }

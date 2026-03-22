@@ -81,7 +81,7 @@ Rivel supports:
 - decimal integer literals, stored as signed 64-bit `Int`
 - decimal double literals with a required decimal point, such as `1.0`, `0.5`, and `10.`
 - boolean literals: `true`, `false`
-- string literals in double quotes
+- string literals in double quotes, with optional `${...}` interpolation
 
 Strings are immutable UTF-8 byte sequences. Supported escapes are:
 
@@ -90,6 +90,8 @@ Strings are immutable UTF-8 byte sequences. Supported escapes are:
 - `\n`
 - `\r`
 - `\t`
+
+Interpolated string expressions may produce `Int`, `Double`, `Bool`, or `String`.
 
 Character literals and list literals are not part of v1.
 
@@ -396,35 +398,38 @@ Rules:
 Builtin names are reserved top-level identifiers:
 
 - `print`
+- `println`
 - `len`
 - `substr`
 - `contains`
 - `starts_with`
 - `ends_with`
 
-### Builtin `print`
+### Builtins `print` and `println`
 
-`print` is a builtin call statement with this effective shape:
+`print` and `println` are builtin call statements with this effective shape:
 
 ```txt
 print "(" Expr ")"
+println "(" Expr ")"
 ```
 
 Rules:
 
-- it must be used as a statement, not as an expression
-- it accepts exactly one argument
+- they must be used as statements, not as expressions
+- they accept exactly one argument
 - the argument must be `Int`, `Double`, `Bool`, or `String`
-- it writes the value followed by a newline
-- `print` is a reserved top-level name
+- `print` writes the value without a trailing newline
+- `println` writes the value followed by a newline
+- both names are reserved top-level names
 
 Example:
 
 ```rivel
 fn main() -> Int {
-    print(true)
-    print(false)
-    print("hello")
+    print("ready=")
+    println(true)
+    println("hello ${42}")
     return 0
 }
 ```
@@ -507,6 +512,7 @@ Allowed ingredients:
 - unary `-` and `not`
 - supported arithmetic, comparison, equality, and logical operators
 - pure string builtins: `len`, `substr`, `contains`, `starts_with`, `ends_with`
+- string interpolation when every `${...}` expression is also constant
 - grouped expressions
 
 Rejected in top-level constant initializers:
@@ -516,6 +522,7 @@ Rejected in top-level constant initializers:
 - references to locals
 - non-builtin function calls
 - builtin `print`
+- builtin `println`
 - cyclic constant definitions
 
 Example:
@@ -529,12 +536,10 @@ const READY: Bool = BASE == 40 and not false
 
 The generated program includes runtime helpers for:
 
-- printing `Int`
-- printing `Double`
-- printing `Bool`
-- printing `String`
+- printing `Int`, `Double`, `Bool`, and `String` with or without trailing newlines
 - checking division by zero for `/` and `%`
 - checking substring bounds for `substr`
+- formatting interpolated `Int`, `Double`, and `Bool` values into owned strings
 - retaining and releasing nested strings stored inside struct values
 
 Division or modulo by zero prints `division by zero` to `stderr` and exits with

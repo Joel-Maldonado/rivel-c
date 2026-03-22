@@ -51,6 +51,32 @@ static bool backend_emit_return_stmt(Backend *backend, const Expr *value_expr) {
     return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "return %s;", temp_name));
 }
 
+static bool backend_emit_print_call(Backend *backend, const Expr *arg, bool newline) {
+    Type arg_type;
+    const char *int_name = newline ? "rivel_println_int" : "rivel_print_int_inline";
+    const char *bool_name = newline ? "rivel_println_bool" : "rivel_print_bool_inline";
+    const char *double_name = newline ? "rivel_println_double" : "rivel_print_double_inline";
+    const char *string_name = newline ? "rivel_println_string_take" : "rivel_print_string_take_inline";
+    char *value = backend_emit_expr(backend, arg);
+
+    if (value == NULL) {
+        return false;
+    }
+    if (!expr_resolved_type(arg, &arg_type)) {
+        return error_set(backend->error, "Backend", "Internal error: missing semantic type for builtin print argument");
+    }
+    if (arg_type.kind == TYPE_BOOL) {
+        return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s(%s);", bool_name, value));
+    }
+    if (arg_type.kind == TYPE_DOUBLE) {
+        return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s(%s);", double_name, value));
+    }
+    if (arg_type.kind == TYPE_STRING) {
+        return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s(%s);", string_name, value));
+    }
+    return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "%s(%s);", int_name, value));
+}
+
 char *backend_function_signature(Backend *backend, const Decl *decl) {
     StrBuf buf;
     size_t index = 0U;
@@ -94,26 +120,10 @@ char *backend_function_signature(Backend *backend, const Decl *decl) {
 
 bool backend_emit_call_stmt(Backend *backend, const Expr *call_expr) {
     if (slice_equal_cstr(call_expr->as.call.callee, "print")) {
-        Expr *arg = expr_list_get(&call_expr->as.call.args, 0U);
-        Type arg_type;
-        char *value = backend_emit_expr(backend, arg);
-
-        if (value == NULL) {
-            return false;
-        }
-        if (!expr_resolved_type(arg, &arg_type)) {
-            return error_set(backend->error, "Backend", "Internal error: missing semantic type for builtin print argument");
-        }
-        if (arg_type.kind == TYPE_BOOL) {
-            return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_print_bool(%s);", value));
-        }
-        if (arg_type.kind == TYPE_DOUBLE) {
-            return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_print_double(%s);", value));
-        }
-        if (arg_type.kind == TYPE_STRING) {
-            return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_print_string_take(%s);", value));
-        }
-        return backend_emit_line(backend, arena_printf(backend->arena, backend->error, "rivel_print_int(%s);", value));
+        return backend_emit_print_call(backend, expr_list_get(&call_expr->as.call.args, 0U), false);
+    }
+    if (slice_equal_cstr(call_expr->as.call.callee, "println")) {
+        return backend_emit_print_call(backend, expr_list_get(&call_expr->as.call.args, 0U), true);
     }
 
     Type call_type;

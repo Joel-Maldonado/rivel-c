@@ -41,7 +41,7 @@ fn add_one(x: Int) -> Int {
 // Main entry point
 fn main() -> Int {
     const result = add_one(BASE)
-    print(result)
+    println("result=${result}")
     return 0
 }
 ```
@@ -99,11 +99,12 @@ The repo also includes a larger `example.rivel` program that shows strings, doub
 - `for i in start..end` and `for i in start..=end` over `Int` ranges
 - assignments to `mut` bindings
 - assignments to fields through mutable local struct bindings
-- function-call statements such as `print(x)` or `helper()`
+- function-call statements such as `print(x)`, `println(x)`, or `helper()`
 
 ### Expressions
 
 - struct literals such as `Person { name: "John", age: 23 }`
+- interpolated strings such as `"Hello, ${name}"` and `"count=${value + 1}"`
 - field access with `.`, such as `person.age`
 - named function calls in expression position
 - grouped expressions with `(...)`
@@ -115,7 +116,9 @@ The repo also includes a larger `example.rivel` program that shows strings, doub
 ### Functions, Scope, and Runtime Behavior
 
 - forward calls and recursion
+- statement-only output builtins `print` (inline) and `println` (newline)
 - string builtins `len`, `substr`, `contains`, `starts_with`, `ends_with`
+- string literals support `${...}` interpolation plus the escapes `\\`, `\"`, `\n`, `\r`, `\t`
 - struct values are copied by value; string-containing structs retain and release nested strings automatically
 - strings are immutable UTF-8 byte sequences, and `len` and `substr` use byte counts
 
@@ -126,7 +129,7 @@ The language is very tiny, basic, and underdeveloed. Some current limits:
 - no arrays yet
 - one input file per compiler invocation
 - no imports or modules
-- `print(...)` is a statement-only builtin, not an expression
+- `print(...)` and `println(...)` are statement-only builtins, not expressions
 
 ## Testing
 

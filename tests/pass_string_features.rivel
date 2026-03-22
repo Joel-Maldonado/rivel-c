@@ -9,11 +9,11 @@ fn decorate(value: String) -> String {
 
 fn main() -> Int {
     const tail = substr(GREETING, 6, 5)
-    print(GREETING)
-    print(tail)
-    print(HAS_WORLD)
-    print(HAS_PREFIX)
-    print(HAS_SUFFIX)
-    print(decorate(tail))
+    println(GREETING)
+    println(tail)
+    println(HAS_WORLD)
+    println(HAS_PREFIX)
+    println(HAS_SUFFIX)
+    println(decorate(tail))
     return len(tail)
 }

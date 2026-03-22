@@ -50,6 +50,10 @@ static bool analyzer_builtin_require_arg_type(Analyzer *analyzer, const Expr *ca
     return true;
 }
 
+static bool analyzer_builtin_supports_printable_type(Type type) {
+    return type.kind == TYPE_INT || type.kind == TYPE_DOUBLE || type.kind == TYPE_BOOL || type.kind == TYPE_STRING;
+}
+
 static bool analyzer_analyze_binary_expr(Analyzer *analyzer, Token token, TokenType op, Type lhs, Type rhs, Type *out_type) {
     Type int_type = type_make_int();
     Type bool_type = type_make_bool();
@@ -116,9 +120,16 @@ static bool analyzer_analyze_builtin_call(Analyzer *analyzer, const Expr *call_e
     Type string_type = type_make_string();
     Type arg_type;
 
-    if (builtin.kind == BUILTIN_PRINT) {
+    if (builtin.kind == BUILTIN_PRINT || builtin.kind == BUILTIN_PRINTLN) {
+        const char *builtin_name = builtin.kind == BUILTIN_PRINT ? "print" : "println";
+
         if (!allow_statement_only_builtins) {
-            return error_set_at(analyzer->error, "Semantic", call_expr->token.line, call_expr->token.column, "Builtin `print` cannot be used as an expression");
+            return error_set_at(analyzer->error,
+                                "Semantic",
+                                call_expr->token.line,
+                                call_expr->token.column,
+                                "Builtin `%s` cannot be used as an expression",
+                                builtin_name);
         }
         if (!analyzer_builtin_expect_arg_count(analyzer, call_expr, 1U)) {
             return false;
@@ -126,10 +137,34 @@ static bool analyzer_analyze_builtin_call(Analyzer *analyzer, const Expr *call_e
         if (!analyzer_analyze_expr(analyzer, expr_list_get(&call_expr->as.call.args, 0U), &arg_type)) {
             return false;
         }
-        if (arg_type.kind != TYPE_INT && arg_type.kind != TYPE_DOUBLE && arg_type.kind != TYPE_BOOL && arg_type.kind != TYPE_STRING) {
-            return error_set_at(analyzer->error, "Semantic", call_expr->token.line, call_expr->token.column, "Builtin `print` does not support argument type %s", type_display_name(arg_type));
+        if (!analyzer_builtin_supports_printable_type(arg_type)) {
+            return error_set_at(analyzer->error,
+                                "Semantic",
+                                call_expr->token.line,
+                                call_expr->token.column,
+                                "Builtin `%s` does not support argument type %s",
+                                builtin_name,
+                                type_display_name(arg_type));
         }
         *out_type = type_make_int();
+        return true;
+    }
+    if (builtin.kind == BUILTIN_STRINGIFY) {
+        if (!analyzer_builtin_expect_arg_count(analyzer, call_expr, 1U)) {
+            return false;
+        }
+        if (!analyzer_analyze_expr(analyzer, expr_list_get(&call_expr->as.call.args, 0U), &arg_type)) {
+            return false;
+        }
+        if (!analyzer_builtin_supports_printable_type(arg_type)) {
+            return error_set_at(analyzer->error,
+                                "Semantic",
+                                call_expr->token.line,
+                                call_expr->token.column,
+                                "String interpolation does not support argument type %s",
+                                type_display_name(arg_type));
+        }
+        *out_type = string_type;
         return true;
     }
     if (builtin.kind == BUILTIN_LEN) {

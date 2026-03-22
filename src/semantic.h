@@ -23,6 +23,8 @@ typedef struct {
 
 typedef enum {
     BUILTIN_PRINT,
+    BUILTIN_PRINTLN,
+    BUILTIN_STRINGIFY,
     BUILTIN_LEN,
     BUILTIN_SUBSTR,
     BUILTIN_CONTAINS,

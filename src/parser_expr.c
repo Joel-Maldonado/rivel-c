@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "tokenizer.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -6,11 +7,18 @@
 static bool parser_parse_primary(Parser *parser, Expr **out_expr);
 static bool parser_parse_struct_literal(Parser *parser, Token name_token, Expr **out_expr);
 static bool parser_starts_struct_literal(const Parser *parser);
+static bool parser_make_binary(Parser *parser, Token token, Expr *lhs, Expr *rhs, Expr **out_expr);
+static bool parser_parse_string_literal_expr(Parser *parser, Token token, Expr **out_expr);
+static Expr *parser_new_string_expr(Parser *parser, Token token, StrSlice value);
+static Expr *parser_wrap_stringify_expr(Parser *parser, Token token, Expr *value_expr);
+static bool parser_find_interpolation_end(Token token, size_t start, size_t *out_end);
 
-static bool parser_decode_string_literal(Parser *parser, Token token, StrSlice *out_value) {
-    size_t max_len = token.lexeme.len >= 2U ? token.lexeme.len - 2U : 0U;
+static const char PARSER_STRINGIFY_BUILTIN_NAME[] = "__stringify";
+
+static bool parser_decode_string_range(Parser *parser, Token token, size_t start, size_t end, StrSlice *out_value) {
+    size_t max_len = end >= start ? end - start : 0U;
     char *buffer;
-    size_t src_index = 1U;
+    size_t src_index = start;
     size_t dst_index = 0U;
 
     if (max_len == 0U) {
@@ -22,7 +30,7 @@ static bool parser_decode_string_literal(Parser *parser, Token token, StrSlice *
         return false;
     }
 
-    while (src_index + 1U < token.lexeme.len) {
+    while (src_index < end) {
         char current = token.lexeme.data[src_index];
 
         if (current != '\\') {
@@ -32,7 +40,7 @@ static bool parser_decode_string_literal(Parser *parser, Token token, StrSlice *
         }
 
         src_index += 1U;
-        if (src_index >= token.lexeme.len - 1U) {
+        if (src_index >= end) {
             return error_set_at(parser->error, "Parse", token.line, token.column + (int)src_index, "Unterminated string escape");
         }
 
@@ -54,6 +62,240 @@ static bool parser_decode_string_literal(Parser *parser, Token token, StrSlice *
     }
 
     *out_value = slice_from_parts(buffer, dst_index);
+    return true;
+}
+
+static bool parser_decode_string_literal(Parser *parser, Token token, StrSlice *out_value) {
+    return parser_decode_string_range(parser, token, 1U, token.lexeme.len - 1U, out_value);
+}
+
+static Expr *parser_new_string_expr(Parser *parser, Token token, StrSlice value) {
+    Expr *expr = parser_new_expr(parser, EXPR_STRING);
+
+    if (expr == NULL) {
+        return NULL;
+    }
+    expr->token = token;
+    expr->as.string_value = value;
+    return expr;
+}
+
+static Expr *parser_wrap_stringify_expr(Parser *parser, Token token, Expr *value_expr) {
+    Expr *expr = parser_new_expr(parser, EXPR_CALL);
+    Expr **arg;
+
+    if (expr == NULL) {
+        return NULL;
+    }
+    expr->token = token;
+    expr->as.call.callee = slice_from_cstr(PARSER_STRINGIFY_BUILTIN_NAME);
+    expr_list_init(&expr->as.call.args, parser->arena);
+    arg = expr_list_push(&expr->as.call.args, parser->error);
+    if (arg == NULL) {
+        return NULL;
+    }
+    *arg = value_expr;
+    return expr;
+}
+
+static void parser_rebase_nested_error(Parser *parser, Token token, size_t base_offset) {
+    if (!parser->error->has_location) {
+        return;
+    }
+    parser->error->line = token.line + parser->error->line - 1;
+    if (parser->error->line == token.line) {
+        parser->error->column = token.column + (int)base_offset + parser->error->column - 1;
+    }
+}
+
+static bool parser_find_string_end(Token token, size_t start, size_t *out_end) {
+    size_t index = start + 1U;
+
+    while (index < token.lexeme.len - 1U) {
+        char current = token.lexeme.data[index];
+
+        if (current == '\\') {
+            index += 2U;
+            continue;
+        }
+        if (current == '$' && index + 1U < token.lexeme.len - 1U && token.lexeme.data[index + 1U] == '{') {
+            size_t nested_end;
+
+            index += 2U;
+            if (!parser_find_interpolation_end(token, index, &nested_end)) {
+                return false;
+            }
+            index = nested_end + 1U;
+            continue;
+        }
+        if (current == '"') {
+            *out_end = index;
+            return true;
+        }
+        index += 1U;
+    }
+
+    return false;
+}
+
+static bool parser_find_interpolation_end(Token token, size_t start, size_t *out_end) {
+    size_t brace_depth = 1U;
+    size_t index = start;
+
+    while (index < token.lexeme.len - 1U) {
+        char current = token.lexeme.data[index];
+
+        if (current == '"') {
+            size_t string_end;
+
+            if (!parser_find_string_end(token, index, &string_end)) {
+                return false;
+            }
+            index = string_end + 1U;
+            continue;
+        }
+        if (current == '{') {
+            brace_depth += 1U;
+            index += 1U;
+            continue;
+        }
+        if (current == '}') {
+            brace_depth -= 1U;
+            if (brace_depth == 0U) {
+                *out_end = index;
+                return true;
+            }
+            index += 1U;
+            continue;
+        }
+        index += 1U;
+    }
+
+    return false;
+}
+
+static bool parser_parse_interpolation_expr(Parser *parser, Token token, size_t start, size_t end, Expr **out_expr) {
+    StrSlice source_slice = slice_from_parts(token.lexeme.data + start, end - start);
+    char *source = arena_copy_slice(parser->arena, source_slice, parser->error);
+    TokenList tokens;
+    Parser nested;
+
+    if (source == NULL) {
+        return false;
+    }
+    token_list_init(&tokens, parser->arena);
+    if (!tokenize_source(source, parser->arena, &tokens, parser->error)) {
+        parser_rebase_nested_error(parser, token, start);
+        return false;
+    }
+
+    nested.tokens = &tokens;
+    nested.index = 0U;
+    nested.arena = parser->arena;
+    nested.error = parser->error;
+    if (!parser_parse_expression(&nested, out_expr)) {
+        parser_rebase_nested_error(parser, token, start);
+        return false;
+    }
+    if (!parser_is(&nested, TOKEN_EOF, 0U)) {
+        const Token *next = parser_peek(&nested, 0U);
+
+        return error_set_at(parser->error,
+                            "Parse",
+                            token.line,
+                            token.column + (int)start + next->column - 1,
+                            "Unexpected token in string interpolation");
+    }
+    return true;
+}
+
+static bool parser_append_interpolated_term(Parser *parser, Token token, Expr **current_expr, Expr *term) {
+    Token plus_token = token;
+
+    if (*current_expr == NULL) {
+        *current_expr = term;
+        return true;
+    }
+    plus_token.type = TOKEN_PLUS;
+    plus_token.lexeme = slice_from_cstr("+");
+    return parser_make_binary(parser, plus_token, *current_expr, term, current_expr);
+}
+
+static bool parser_parse_string_literal_expr(Parser *parser, Token token, Expr **out_expr) {
+    size_t content_end = token.lexeme.len - 1U;
+    size_t segment_start = 1U;
+    size_t index = 1U;
+    Expr *expr = NULL;
+    bool saw_interpolation = false;
+
+    while (index < content_end) {
+        char current = token.lexeme.data[index];
+
+        if (current == '\\') {
+            index += 2U;
+            continue;
+        }
+        if (current == '$' && index + 1U < content_end && token.lexeme.data[index + 1U] == '{') {
+            size_t interpolation_start = index + 2U;
+            size_t interpolation_end;
+            Expr *interpolated_expr;
+            StrSlice segment_value;
+            Expr *segment_expr;
+
+            saw_interpolation = true;
+            if (index > segment_start) {
+                if (!parser_decode_string_range(parser, token, segment_start, index, &segment_value)) {
+                    return false;
+                }
+                segment_expr = parser_new_string_expr(parser, token, segment_value);
+                if (segment_expr == NULL || !parser_append_interpolated_term(parser, token, &expr, segment_expr)) {
+                    return false;
+                }
+            }
+            if (!parser_find_interpolation_end(token, interpolation_start, &interpolation_end)) {
+                return error_set_at(parser->error, "Parse", token.line, token.column + (int)index, "Unterminated string interpolation");
+            }
+            if (interpolation_start == interpolation_end) {
+                return error_set_at(parser->error, "Parse", token.line, token.column + (int)interpolation_start, "Expected expression");
+            }
+            if (!parser_parse_interpolation_expr(parser, token, interpolation_start, interpolation_end, &interpolated_expr)) {
+                return false;
+            }
+            interpolated_expr = parser_wrap_stringify_expr(parser, token, interpolated_expr);
+            if (interpolated_expr == NULL || !parser_append_interpolated_term(parser, token, &expr, interpolated_expr)) {
+                return false;
+            }
+            index = interpolation_end + 1U;
+            segment_start = index;
+            continue;
+        }
+        index += 1U;
+    }
+
+    if (!saw_interpolation) {
+        StrSlice value;
+
+        if (!parser_decode_string_literal(parser, token, &value)) {
+            return false;
+        }
+        *out_expr = parser_new_string_expr(parser, token, value);
+        return *out_expr != NULL;
+    }
+
+    if (segment_start < content_end) {
+        StrSlice tail_value;
+        Expr *tail_expr;
+
+        if (!parser_decode_string_range(parser, token, segment_start, content_end, &tail_value)) {
+            return false;
+        }
+        tail_expr = parser_new_string_expr(parser, token, tail_value);
+        if (tail_expr == NULL || !parser_append_interpolated_term(parser, token, &expr, tail_expr)) {
+            return false;
+        }
+    }
+
+    *out_expr = expr;
     return true;
 }
 
@@ -427,17 +669,8 @@ static bool parser_parse_primary(Parser *parser, Expr **out_expr) {
     }
     if (parser_match(parser, TOKEN_STRING_LITERAL)) {
         Token token = *parser_previous(parser, 0U);
-        Expr *expr = parser_new_expr(parser, EXPR_STRING);
 
-        if (expr == NULL) {
-            return false;
-        }
-        expr->token = token;
-        if (!parser_decode_string_literal(parser, token, &expr->as.string_value)) {
-            return false;
-        }
-        *out_expr = expr;
-        return true;
+        return parser_parse_string_literal_expr(parser, token, out_expr);
     }
     if (parser_match(parser, TOKEN_IDENTIFIER)) {
         Token token = *parser_previous(parser, 0U);

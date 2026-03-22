@@ -4,10 +4,10 @@ fn main() -> Int {
 
     if true {
         const message = message + "b"
-        print(message)
+        println(message)
     }
 
     message = message + "c"
-    print(message)
+    println(message)
     return len(message)
 }

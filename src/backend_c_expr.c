@@ -148,15 +148,31 @@ static char *backend_emit_builtin_call_expr(Backend *backend, const Expr *expr) 
     char *arg0;
     char *arg1;
     char *arg2;
+    Type arg0_type;
 
-    if (slice_equal_cstr(expr->as.call.callee, "print")) {
-        error_set(backend->error, "Backend", "Internal error: builtin `print` reached expression emitter");
+    if (slice_equal_cstr(expr->as.call.callee, "print") || slice_equal_cstr(expr->as.call.callee, "println")) {
+        error_set(backend->error, "Backend", "Internal error: statement-only builtin reached expression emitter");
         return NULL;
     }
 
     arg0 = backend_emit_expr(backend, expr_list_get(&expr->as.call.args, 0U));
     if (arg0 == NULL) {
         return NULL;
+    }
+    if (slice_equal_cstr(expr->as.call.callee, "__stringify")) {
+        if (!backend_expr_type_checked(backend, expr_list_get(&expr->as.call.args, 0U), &arg0_type)) {
+            return NULL;
+        }
+        if (arg0_type.kind == TYPE_STRING) {
+            return arg0;
+        }
+        if (arg0_type.kind == TYPE_BOOL) {
+            return arena_printf(backend->arena, backend->error, "rivel_string_from_bool(%s)", arg0);
+        }
+        if (arg0_type.kind == TYPE_DOUBLE) {
+            return arena_printf(backend->arena, backend->error, "rivel_string_from_double(%s)", arg0);
+        }
+        return arena_printf(backend->arena, backend->error, "rivel_string_from_int(%s)", arg0);
     }
     if (slice_equal_cstr(expr->as.call.callee, "len")) {
         return arena_printf(backend->arena, backend->error, "rivel_string_len_take(%s)", arg0);
@@ -171,17 +187,25 @@ static char *backend_emit_builtin_call_expr(Backend *backend, const Expr *expr) 
         return arena_printf(backend->arena, backend->error, "rivel_string_substr_take(%s, %s, %s)", arg0, arg1, arg2);
     }
 
-    arg1 = backend_emit_expr(backend, expr_list_get(&expr->as.call.args, 1U));
-    if (arg1 == NULL) {
-        return NULL;
-    }
     if (slice_equal_cstr(expr->as.call.callee, "contains")) {
+        arg1 = backend_emit_expr(backend, expr_list_get(&expr->as.call.args, 1U));
+        if (arg1 == NULL) {
+            return NULL;
+        }
         return arena_printf(backend->arena, backend->error, "rivel_string_contains_take(%s, %s)", arg0, arg1);
     }
     if (slice_equal_cstr(expr->as.call.callee, "starts_with")) {
+        arg1 = backend_emit_expr(backend, expr_list_get(&expr->as.call.args, 1U));
+        if (arg1 == NULL) {
+            return NULL;
+        }
         return arena_printf(backend->arena, backend->error, "rivel_string_starts_with_take(%s, %s)", arg0, arg1);
     }
     if (slice_equal_cstr(expr->as.call.callee, "ends_with")) {
+        arg1 = backend_emit_expr(backend, expr_list_get(&expr->as.call.args, 1U));
+        if (arg1 == NULL) {
+            return NULL;
+        }
         return arena_printf(backend->arena, backend->error, "rivel_string_ends_with_take(%s, %s)", arg0, arg1);
     }
 
