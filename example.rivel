@@ -14,7 +14,7 @@ struct Stats {
 }
 
 struct Profile {
-    name: String
+    name: String 
     level: Int
     active: Bool
     stats: Stats
@@ -26,8 +26,10 @@ fn section(name: String) -> String {
 }
 
 fn sum_inclusive(limit: Int) -> Int {
+    // Mutable variable
     mut total = 0
 
+    // Inclusive for loop
     for i in 1..=limit {
         total = total + i
     }
@@ -38,6 +40,7 @@ fn sum_inclusive(limit: Int) -> Int {
 fn sum_exclusive(limit: Int) -> Int {
     mut total = 0
 
+    // Exclusive for loop
     for i in 0..limit {
         total = total + i
     }
