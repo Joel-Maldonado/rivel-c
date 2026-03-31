@@ -234,46 +234,22 @@ char *backend_string_literal_value(Backend *backend, StrSlice value) {
     char *copy;
 
     strbuf_init(&buf);
-    if (value.len == 0U) {
-        if (!strbuf_append_cstr(&buf, "\"\"", backend->error)) {
-            strbuf_free(&buf);
-            return NULL;
-        }
+    if (!strbuf_append_char(&buf, '"', backend->error)) {
+        strbuf_free(&buf);
+        return NULL;
     }
-
     while (index < value.len) {
         unsigned char byte = (unsigned char)value.data[index];
+        const char *escape = NULL;
 
-        if (index > 0U && !strbuf_append_char(&buf, ' ', backend->error)) {
-            strbuf_free(&buf);
-            return NULL;
-        }
-        if (!strbuf_append_char(&buf, '"', backend->error)) {
-            strbuf_free(&buf);
-            return NULL;
-        }
-        if (byte == '\\') {
-            if (!strbuf_append_cstr(&buf, "\\\\", backend->error)) {
-                strbuf_free(&buf);
-                return NULL;
-            }
-        } else if (byte == '"') {
-            if (!strbuf_append_cstr(&buf, "\\\"", backend->error)) {
-                strbuf_free(&buf);
-                return NULL;
-            }
-        } else if (byte == '\n') {
-            if (!strbuf_append_cstr(&buf, "\\n", backend->error)) {
-                strbuf_free(&buf);
-                return NULL;
-            }
-        } else if (byte == '\r') {
-            if (!strbuf_append_cstr(&buf, "\\r", backend->error)) {
-                strbuf_free(&buf);
-                return NULL;
-            }
-        } else if (byte == '\t') {
-            if (!strbuf_append_cstr(&buf, "\\t", backend->error)) {
+        if (byte == '\\') escape = "\\\\";
+        else if (byte == '"') escape = "\\\"";
+        else if (byte == '\n') escape = "\\n";
+        else if (byte == '\r') escape = "\\r";
+        else if (byte == '\t') escape = "\\t";
+
+        if (escape != NULL) {
+            if (!strbuf_append_cstr(&buf, escape, backend->error)) {
                 strbuf_free(&buf);
                 return NULL;
             }
@@ -286,11 +262,11 @@ char *backend_string_literal_value(Backend *backend, StrSlice value) {
             strbuf_free(&buf);
             return NULL;
         }
-        if (!strbuf_append_char(&buf, '"', backend->error)) {
-            strbuf_free(&buf);
-            return NULL;
-        }
         index += 1U;
+    }
+    if (!strbuf_append_char(&buf, '"', backend->error)) {
+        strbuf_free(&buf);
+        return NULL;
     }
 
     copy = arena_copy_cstr(backend->arena, strbuf_cstr(&buf), backend->error);
@@ -300,18 +276,18 @@ char *backend_string_literal_value(Backend *backend, StrSlice value) {
 
 char *backend_literal(Backend *backend, ConstValue value) {
     if (value.type.kind == TYPE_BOOL) {
-        return arena_copy_cstr(backend->arena, value.bool_value ? "true" : "false", backend->error);
+        return arena_copy_cstr(backend->arena, value.as.bool_value ? "true" : "false", backend->error);
     }
     if (value.type.kind == TYPE_DOUBLE) {
-        return backend_double_literal(backend, value.double_value);
+        return backend_double_literal(backend, value.as.double_value);
     }
     if (value.type.kind == TYPE_STRING) {
-        char *literal = backend_string_literal_value(backend, value.string_value);
+        char *literal = backend_string_literal_value(backend, value.as.string_value);
 
         if (literal == NULL) {
             return NULL;
         }
-        return arena_printf(backend->arena, backend->error, "(RivelString){%s, %zu, NULL}", literal, value.string_value.len);
+        return arena_printf(backend->arena, backend->error, "(RivelString){%s, %zu, NULL}", literal, value.as.string_value.len);
     }
-    return arena_printf(backend->arena, backend->error, "INT64_C(%lld)", (long long)value.int_value);
+    return arena_printf(backend->arena, backend->error, "INT64_C(%lld)", (long long)value.as.int_value);
 }

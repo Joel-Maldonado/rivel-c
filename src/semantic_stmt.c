@@ -23,7 +23,7 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
         Type binding_type;
 
         if (stmt->as.binding.has_annotation && stmt->as.binding.annotation.kind == TYPE_STRUCT
-            && analyzer_lookup_struct(analyzer, stmt->as.binding.annotation.struct_name) == NULL) {
+            && semantic_lookup_struct(analyzer->result,stmt->as.binding.annotation.struct_name) == NULL) {
             return error_set_at(analyzer->error,
                                 "Semantic",
                                 stmt->token.line,
@@ -83,7 +83,7 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
         }
 
         if (binding == NULL) {
-            if (analyzer_lookup_global(analyzer, binding_name) != NULL) {
+            if (semantic_lookup_global(analyzer->result,binding_name) != NULL) {
                 return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Cannot assign to immutable binding `%.*s`", (int)binding_name.len, binding_name.data);
             }
             return error_set_at(analyzer->error, "Semantic", stmt->token.line, stmt->token.column, "Unknown binding `%.*s`", (int)binding_name.len, binding_name.data);
@@ -116,7 +116,8 @@ bool analyzer_analyze_stmt(Analyzer *analyzer, const Stmt *stmt, Type function_r
         if (!analyzer_analyze_call(analyzer, stmt->as.call.call, true, &call_type)) {
             return false;
         }
-        return semantic_record_expr_type(analyzer->result, stmt->as.call.call, call_type, analyzer->error);
+        expr_set_resolved_type((Expr *)stmt->as.call.call, call_type);
+        return true;
     }
     if (stmt->kind == STMT_IF) {
         Type condition_type;

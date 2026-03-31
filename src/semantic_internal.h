@@ -34,35 +34,16 @@ typedef struct {
 } SemanticGlobalRecord;
 
 typedef struct {
-    Vec storage;
-} SemanticGlobalTable;
-
-typedef struct {
-    Vec storage;
-} SemanticFunctionTable;
-
-typedef struct {
-    Vec storage;
-} SemanticStructTable;
-
-typedef struct {
-    Vec storage;
-} SemanticBuiltinTable;
-
-typedef struct {
-    StringMap storage;
-} SemanticSymbolTable;
+    Vec entries;
+    StringMap names;
+} SemanticTable;
 
 struct SemanticResult {
     Arena *arena;
-    SemanticGlobalTable globals;
-    SemanticFunctionTable functions;
-    SemanticStructTable structs;
-    SemanticBuiltinTable builtins;
-    SemanticSymbolTable global_names;
-    SemanticSymbolTable function_names;
-    SemanticSymbolTable struct_names;
-    SemanticSymbolTable builtin_names;
+    SemanticTable globals;
+    SemanticTable functions;
+    SemanticTable structs;
+    SemanticTable builtins;
 };
 
 typedef struct {
@@ -72,8 +53,13 @@ typedef struct {
     ScopeStack scopes;
 } Analyzer;
 
-uintptr_t semantic_index_value(size_t index);
-size_t semantic_map_index(uintptr_t value);
+void semantic_table_init(SemanticTable *table, size_t entry_size, Arena *arena);
+void semantic_table_free(SemanticTable *table);
+size_t semantic_table_len(const SemanticTable *table);
+void *semantic_table_add(SemanticTable *table, StrSlice name, CompileError *error);
+void *semantic_table_get(const SemanticTable *table, size_t index);
+bool semantic_table_contains(const SemanticTable *table, StrSlice name);
+void *semantic_table_lookup(const SemanticTable *table, StrSlice name);
 
 void binding_table_init(BindingTable *table);
 void binding_table_free(BindingTable *table);
@@ -89,39 +75,7 @@ Scope *scope_stack_get(ScopeStack *stack, size_t index);
 const Scope *scope_stack_get_const(const ScopeStack *stack, size_t index);
 void scope_stack_pop(ScopeStack *stack);
 
-void semantic_symbol_table_init(SemanticSymbolTable *table);
-void semantic_symbol_table_free(SemanticSymbolTable *table);
-bool semantic_symbol_table_contains(const SemanticSymbolTable *table, StrSlice name);
-bool semantic_symbol_table_set(SemanticSymbolTable *table, StrSlice name, size_t index, CompileError *error);
-bool semantic_symbol_table_get(const SemanticSymbolTable *table, StrSlice name, size_t *out_index);
 
-void semantic_global_table_init(SemanticGlobalTable *table, Arena *arena);
-size_t semantic_global_table_len(const SemanticGlobalTable *table);
-SemanticGlobalRecord *semantic_global_table_push(SemanticGlobalTable *table, CompileError *error);
-SemanticGlobalRecord *semantic_global_table_get(SemanticGlobalTable *table, size_t index);
-const SemanticGlobalRecord *semantic_global_table_get_const(const SemanticGlobalTable *table, size_t index);
-
-void semantic_function_table_init(SemanticFunctionTable *table, Arena *arena);
-size_t semantic_function_table_len(const SemanticFunctionTable *table);
-SemanticFunctionInfo *semantic_function_table_push(SemanticFunctionTable *table, CompileError *error);
-SemanticFunctionInfo *semantic_function_table_get(SemanticFunctionTable *table, size_t index);
-const SemanticFunctionInfo *semantic_function_table_get_const(const SemanticFunctionTable *table, size_t index);
-
-void semantic_struct_table_init(SemanticStructTable *table, Arena *arena);
-size_t semantic_struct_table_len(const SemanticStructTable *table);
-SemanticStructInfo *semantic_struct_table_push(SemanticStructTable *table, CompileError *error);
-SemanticStructInfo *semantic_struct_table_get(SemanticStructTable *table, size_t index);
-const SemanticStructInfo *semantic_struct_table_get_const(const SemanticStructTable *table, size_t index);
-
-void semantic_builtin_table_init(SemanticBuiltinTable *table, Arena *arena);
-size_t semantic_builtin_table_len(const SemanticBuiltinTable *table);
-SemanticBuiltinInfo *semantic_builtin_table_push(SemanticBuiltinTable *table, CompileError *error);
-const SemanticBuiltinInfo *semantic_builtin_table_get_const(const SemanticBuiltinTable *table, size_t index);
-
-bool semantic_record_expr_type(SemanticResult *result, const Expr *expr, Type type, CompileError *error);
-bool semantic_record_expr_const(SemanticResult *result, const Expr *expr, ConstValue value, CompileError *error);
-bool semantic_lookup_recorded_expr_type(const SemanticResult *result, const Expr *expr, Type *out_type);
-bool semantic_lookup_recorded_expr_const(const SemanticResult *result, const Expr *expr, ConstValue *out_value);
 
 bool analyzer_push_scope(Analyzer *analyzer);
 void analyzer_pop_scope(Analyzer *analyzer);
@@ -131,10 +85,6 @@ bool analyzer_declare_local(Analyzer *analyzer, Token token, StrSlice name, Type
 const BindingInfo *analyzer_resolve_local(const Analyzer *analyzer, StrSlice name);
 
 SemanticGlobalRecord *analyzer_lookup_global_record_mut(Analyzer *analyzer, StrSlice name);
-const SemanticGlobalInfo *analyzer_lookup_global(const Analyzer *analyzer, StrSlice name);
-const SemanticFunctionInfo *analyzer_lookup_function(const Analyzer *analyzer, StrSlice name);
-const SemanticStructInfo *analyzer_lookup_struct(const Analyzer *analyzer, StrSlice name);
-const SemanticBuiltinInfo *analyzer_lookup_builtin(const Analyzer *analyzer, StrSlice name);
 
 bool analyzer_register_builtins(Analyzer *analyzer);
 bool analyzer_collect_top_level_declarations(Analyzer *analyzer);

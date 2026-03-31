@@ -133,12 +133,8 @@ bool parser_parse_type(Parser *parser, Type *out_type) {
     }
     if (parser_is(parser, TOKEN_IDENTIFIER, 0U)) {
         const Token *token = parser_advance(parser);
-        const char *type_name = arena_copy_slice(parser->arena, token->lexeme, parser->error);
 
-        if (type_name == NULL) {
-            return false;
-        }
-        *out_type = type_make_struct(token->lexeme, type_name);
+        *out_type = type_make_struct(token->lexeme);
         return true;
     }
     return error_set_at(parser->error, "Parse", parser_peek(parser, 0U)->line, parser_peek(parser, 0U)->column, "Expected a type name");

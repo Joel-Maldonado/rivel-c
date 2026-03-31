@@ -204,7 +204,7 @@ static bool analyzer_analyze_builtin_call(Analyzer *analyzer, const Expr *call_e
 }
 
 bool analyzer_analyze_call(Analyzer *analyzer, const Expr *call_expr, bool allow_statement_only_builtins, Type *out_type) {
-    const SemanticBuiltinInfo *builtin = analyzer_lookup_builtin(analyzer, call_expr->as.call.callee);
+    const SemanticBuiltinInfo *builtin = semantic_lookup_builtin(analyzer->result,call_expr->as.call.callee);
     const SemanticFunctionInfo *function;
     size_t index;
 
@@ -212,7 +212,7 @@ bool analyzer_analyze_call(Analyzer *analyzer, const Expr *call_expr, bool allow
         return analyzer_analyze_builtin_call(analyzer, call_expr, *builtin, allow_statement_only_builtins, out_type);
     }
 
-    function = analyzer_lookup_function(analyzer, call_expr->as.call.callee);
+    function = semantic_lookup_function(analyzer->result,call_expr->as.call.callee);
     if (function == NULL) {
         return error_set_at(analyzer->error, "Semantic", call_expr->token.line, call_expr->token.column, "Unknown function `%.*s`", (int)call_expr->as.call.callee.len, call_expr->as.call.callee.data);
     }
@@ -250,7 +250,7 @@ bool analyzer_analyze_call(Analyzer *analyzer, const Expr *call_expr, bool allow
 }
 
 bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type) {
-    if (semantic_lookup_recorded_expr_type(analyzer->result, expr, out_type)) {
+    if (expr_resolved_type(expr, out_type)) {
         return true;
     }
 
@@ -269,7 +269,7 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
         if (binding != NULL) {
             *out_type = binding->type;
         } else {
-            global = analyzer_lookup_global(analyzer, expr->as.name);
+            global = semantic_lookup_global(analyzer->result,expr->as.name);
             if (global == NULL) {
                 return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Unknown binding `%.*s`", (int)expr->as.name.len, expr->as.name.data);
             }
@@ -280,7 +280,7 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
             return false;
         }
     } else if (expr->kind == EXPR_STRUCT_LITERAL) {
-        const SemanticStructInfo *struct_info = analyzer_lookup_struct(analyzer, expr->as.struct_literal.struct_name);
+        const SemanticStructInfo *struct_info = semantic_lookup_struct(analyzer->result,expr->as.struct_literal.struct_name);
         size_t field_index = 0U;
 
         if (struct_info == NULL) {
@@ -373,12 +373,7 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
                 decl_index += 1U;
             }
         }
-        const char *struct_name = arena_copy_slice(analyzer->result->arena, expr->as.struct_literal.struct_name, analyzer->error);
-
-        if (struct_name == NULL) {
-            return false;
-        }
-        *out_type = type_make_struct(expr->as.struct_literal.struct_name, struct_name);
+        *out_type = type_make_struct(expr->as.struct_literal.struct_name);
     } else if (expr->kind == EXPR_FIELD) {
         Type base_type;
         const SemanticStructInfo *struct_info;
@@ -390,7 +385,7 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
         if (base_type.kind != TYPE_STRUCT) {
             return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Field access requires a struct value");
         }
-        struct_info = analyzer_lookup_struct(analyzer, base_type.struct_name);
+        struct_info = semantic_lookup_struct(analyzer->result,base_type.struct_name);
         if (struct_info == NULL) {
             return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Unknown struct `%.*s`", (int)base_type.struct_name.len, base_type.struct_name.data);
         }
@@ -441,5 +436,6 @@ bool analyzer_analyze_expr(Analyzer *analyzer, const Expr *expr, Type *out_type)
         return error_set_at(analyzer->error, "Semantic", expr->token.line, expr->token.column, "Unknown expression type");
     }
 
-    return semantic_record_expr_type(analyzer->result, expr, *out_type, analyzer->error);
+    expr_set_resolved_type((Expr *)expr, *out_type);
+    return true;
 }

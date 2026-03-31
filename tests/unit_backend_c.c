@@ -317,7 +317,7 @@ static void test_c_backend_emits_inline_print_and_stringify_helpers(void) {
     assert(c_backend_generate(&program, result, &arena, &output, &error));
 
     generated_c = strbuf_cstr(&output);
-    assert(strstr(generated_c, "static void rivel_print_int_inline(int64_t value)") != NULL);
+    assert(strstr(generated_c, "static void rivel_print_int(int64_t value)") != NULL);
     assert(strstr(generated_c, "static void rivel_println_int(int64_t value)") != NULL);
     assert(strstr(generated_c, "rivel_string_from_int") != NULL);
     assert(strstr(generated_c, "rivel_string_concat_take") != NULL);

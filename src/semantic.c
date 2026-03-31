@@ -8,14 +8,10 @@ SemanticResult *semantic_result_create(Arena *arena, CompileError *error) {
     }
 
     result->arena = arena;
-    semantic_global_table_init(&result->globals, arena);
-    semantic_function_table_init(&result->functions, arena);
-    semantic_struct_table_init(&result->structs, arena);
-    semantic_builtin_table_init(&result->builtins, arena);
-    semantic_symbol_table_init(&result->global_names);
-    semantic_symbol_table_init(&result->function_names);
-    semantic_symbol_table_init(&result->struct_names);
-    semantic_symbol_table_init(&result->builtin_names);
+    semantic_table_init(&result->globals, sizeof(SemanticGlobalRecord), arena);
+    semantic_table_init(&result->functions, sizeof(SemanticFunctionInfo), arena);
+    semantic_table_init(&result->structs, sizeof(SemanticStructInfo), arena);
+    semantic_table_init(&result->builtins, sizeof(SemanticBuiltinInfo), arena);
     return result;
 }
 
@@ -24,10 +20,10 @@ void semantic_result_dispose(SemanticResult *result) {
         return;
     }
 
-    semantic_symbol_table_free(&result->global_names);
-    semantic_symbol_table_free(&result->function_names);
-    semantic_symbol_table_free(&result->struct_names);
-    semantic_symbol_table_free(&result->builtin_names);
+    semantic_table_free(&result->globals);
+    semantic_table_free(&result->functions);
+    semantic_table_free(&result->structs);
+    semantic_table_free(&result->builtins);
 }
 
 bool semantic_analyze(const Program *program, SemanticResult *result, CompileError *error) {
@@ -44,8 +40,8 @@ bool semantic_analyze(const Program *program, SemanticResult *result, CompileErr
         return false;
     }
 
-    while (index < semantic_global_table_len(&result->globals)) {
-        SemanticGlobalRecord *record = semantic_global_table_get(&result->globals, index);
+    while (index < semantic_table_len(&result->globals)) {
+        SemanticGlobalRecord *record = (SemanticGlobalRecord *)semantic_table_get(&result->globals, index);
         ConstValue value;
 
         if (!analyzer_evaluate_global_constant(&analyzer, record->info.decl->name, &value)) {
@@ -57,8 +53,8 @@ bool semantic_analyze(const Program *program, SemanticResult *result, CompileErr
     }
 
     index = 0U;
-    while (index < semantic_function_table_len(&result->functions)) {
-        SemanticFunctionInfo *info = semantic_function_table_get(&result->functions, index);
+    while (index < semantic_table_len(&result->functions)) {
+        SemanticFunctionInfo *info = (SemanticFunctionInfo *)semantic_table_get(&result->functions, index);
         if (!analyzer_analyze_function(&analyzer, info->decl)) {
             analyzer_clear_scopes(&analyzer);
             scope_stack_free(&analyzer.scopes);
@@ -79,39 +75,24 @@ bool semantic_analyze(const Program *program, SemanticResult *result, CompileErr
 }
 
 const SemanticGlobalInfo *semantic_lookup_global(const SemanticResult *result, StrSlice name) {
-    size_t index;
+    SemanticGlobalRecord *record = (SemanticGlobalRecord *)semantic_table_lookup(&result->globals, name);
 
-    if (!semantic_symbol_table_get(&result->global_names, name, &index)) {
+    if (record == NULL) {
         return NULL;
     }
-    return &semantic_global_table_get_const(&result->globals, index)->info;
+    return &record->info;
 }
 
 const SemanticFunctionInfo *semantic_lookup_function(const SemanticResult *result, StrSlice name) {
-    size_t index;
-
-    if (!semantic_symbol_table_get(&result->function_names, name, &index)) {
-        return NULL;
-    }
-    return semantic_function_table_get_const(&result->functions, index);
+    return (const SemanticFunctionInfo *)semantic_table_lookup(&result->functions, name);
 }
 
 const SemanticStructInfo *semantic_lookup_struct(const SemanticResult *result, StrSlice name) {
-    size_t index;
-
-    if (!semantic_symbol_table_get(&result->struct_names, name, &index)) {
-        return NULL;
-    }
-    return semantic_struct_table_get_const(&result->structs, index);
+    return (const SemanticStructInfo *)semantic_table_lookup(&result->structs, name);
 }
 
 const SemanticBuiltinInfo *semantic_lookup_builtin(const SemanticResult *result, StrSlice name) {
-    size_t index;
-
-    if (!semantic_symbol_table_get(&result->builtin_names, name, &index)) {
-        return NULL;
-    }
-    return semantic_builtin_table_get_const(&result->builtins, index);
+    return (const SemanticBuiltinInfo *)semantic_table_lookup(&result->builtins, name);
 }
 
 bool semantic_global_const_value(const SemanticResult *result, StrSlice name, ConstValue *out_value) {
@@ -126,12 +107,3 @@ bool semantic_global_const_value(const SemanticResult *result, StrSlice name, Co
     return true;
 }
 
-bool semantic_expr_type(const SemanticResult *result, const Expr *expr, Type *out_type) {
-    (void)result;
-    return expr_resolved_type(expr, out_type);
-}
-
-bool semantic_expr_const_value(const SemanticResult *result, const Expr *expr, ConstValue *out_value) {
-    (void)result;
-    return expr_const_value(expr, out_value);
-}

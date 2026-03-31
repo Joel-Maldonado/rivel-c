@@ -418,7 +418,7 @@ static bool backend_emit_runtime_print_helpers(Backend *backend) {
     backend_indent_pop(backend);
     if (!backend_emit_line(backend, "}")
         || !backend_emit_line(backend, "")
-        || !backend_emit_line(backend, "static void rivel_print_int_inline(int64_t value) {")) {
+        || !backend_emit_line(backend, "static void rivel_print_int(int64_t value) {")) {
         return false;
     }
     backend_indent_push(backend);
@@ -433,24 +433,14 @@ static bool backend_emit_runtime_print_helpers(Backend *backend) {
         return false;
     }
     backend_indent_push(backend);
-    if (!backend_emit_line(backend, "rivel_print_int_inline(value);")
+    if (!backend_emit_line(backend, "rivel_print_int(value);")
         || !backend_emit_line(backend, "fputc('\\n', stdout);")) {
         return false;
     }
     backend_indent_pop(backend);
     if (!backend_emit_line(backend, "}")
         || !backend_emit_line(backend, "")
-        || !backend_emit_line(backend, "static void rivel_print_int(int64_t value) {")) {
-        return false;
-    }
-    backend_indent_push(backend);
-    if (!backend_emit_line(backend, "rivel_println_int(value);")) {
-        return false;
-    }
-    backend_indent_pop(backend);
-    if (!backend_emit_line(backend, "}")
-        || !backend_emit_line(backend, "")
-        || !backend_emit_line(backend, "static void rivel_print_bool_inline(bool value) {")) {
+        || !backend_emit_line(backend, "static void rivel_print_bool(bool value) {")) {
         return false;
     }
     backend_indent_push(backend);
@@ -465,24 +455,14 @@ static bool backend_emit_runtime_print_helpers(Backend *backend) {
         return false;
     }
     backend_indent_push(backend);
-    if (!backend_emit_line(backend, "rivel_print_bool_inline(value);")
+    if (!backend_emit_line(backend, "rivel_print_bool(value);")
         || !backend_emit_line(backend, "fputc('\\n', stdout);")) {
         return false;
     }
     backend_indent_pop(backend);
     if (!backend_emit_line(backend, "}")
         || !backend_emit_line(backend, "")
-        || !backend_emit_line(backend, "static void rivel_print_bool(bool value) {")) {
-        return false;
-    }
-    backend_indent_push(backend);
-    if (!backend_emit_line(backend, "rivel_println_bool(value);")) {
-        return false;
-    }
-    backend_indent_pop(backend);
-    if (!backend_emit_line(backend, "}")
-        || !backend_emit_line(backend, "")
-        || !backend_emit_line(backend, "static void rivel_print_double_inline(double value) {")) {
+        || !backend_emit_line(backend, "static void rivel_print_double(double value) {")) {
         return false;
     }
     backend_indent_push(backend);
@@ -497,24 +477,14 @@ static bool backend_emit_runtime_print_helpers(Backend *backend) {
         return false;
     }
     backend_indent_push(backend);
-    if (!backend_emit_line(backend, "rivel_print_double_inline(value);")
+    if (!backend_emit_line(backend, "rivel_print_double(value);")
         || !backend_emit_line(backend, "fputc('\\n', stdout);")) {
         return false;
     }
     backend_indent_pop(backend);
     if (!backend_emit_line(backend, "}")
         || !backend_emit_line(backend, "")
-        || !backend_emit_line(backend, "static void rivel_print_double(double value) {")) {
-        return false;
-    }
-    backend_indent_push(backend);
-    if (!backend_emit_line(backend, "rivel_println_double(value);")) {
-        return false;
-    }
-    backend_indent_pop(backend);
-    if (!backend_emit_line(backend, "}")
-        || !backend_emit_line(backend, "")
-        || !backend_emit_line(backend, "static void rivel_print_string_take_inline(RivelString value) {")) {
+        || !backend_emit_line(backend, "static void rivel_print_string_take(RivelString value) {")) {
         return false;
     }
     backend_indent_push(backend);
@@ -528,18 +498,8 @@ static bool backend_emit_runtime_print_helpers(Backend *backend) {
         return false;
     }
     backend_indent_push(backend);
-    if (!backend_emit_line(backend, "rivel_print_string_take_inline(value);")
+    if (!backend_emit_line(backend, "rivel_print_string_take(value);")
         || !backend_emit_line(backend, "fputc('\\n', stdout);")) {
-        return false;
-    }
-    backend_indent_pop(backend);
-    if (!backend_emit_line(backend, "}")
-        || !backend_emit_line(backend, "")
-        || !backend_emit_line(backend, "static void rivel_print_string_take(RivelString value) {")) {
-        return false;
-    }
-    backend_indent_push(backend);
-    if (!backend_emit_line(backend, "rivel_println_string_take(value);")) {
         return false;
     }
     backend_indent_pop(backend);

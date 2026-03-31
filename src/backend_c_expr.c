@@ -30,7 +30,7 @@ static char *backend_emit_struct_literal_expr(Backend *backend, const Expr *expr
     if (!strbuf_append_fmt(&buf,
                            backend->error,
                            "((%s){",
-                           backend_c_type(backend, type_make_struct(expr->as.struct_literal.struct_name, NULL)))) {
+                           backend_c_type(backend, type_make_struct(expr->as.struct_literal.struct_name)))) {
         strbuf_free(&buf);
         return NULL;
     }

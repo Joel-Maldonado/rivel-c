@@ -53,10 +53,10 @@ static bool backend_emit_return_stmt(Backend *backend, const Expr *value_expr) {
 
 static bool backend_emit_print_call(Backend *backend, const Expr *arg, bool newline) {
     Type arg_type;
-    const char *int_name = newline ? "rivel_println_int" : "rivel_print_int_inline";
-    const char *bool_name = newline ? "rivel_println_bool" : "rivel_print_bool_inline";
-    const char *double_name = newline ? "rivel_println_double" : "rivel_print_double_inline";
-    const char *string_name = newline ? "rivel_println_string_take" : "rivel_print_string_take_inline";
+    const char *int_name = newline ? "rivel_println_int" : "rivel_print_int";
+    const char *bool_name = newline ? "rivel_println_bool" : "rivel_print_bool";
+    const char *double_name = newline ? "rivel_println_double" : "rivel_print_double";
+    const char *string_name = newline ? "rivel_println_string_take" : "rivel_print_string_take";
     char *value = backend_emit_expr(backend, arg);
 
     if (value == NULL) {

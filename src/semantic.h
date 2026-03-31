@@ -44,7 +44,5 @@ const SemanticFunctionInfo *semantic_lookup_function(const SemanticResult *resul
 const SemanticStructInfo *semantic_lookup_struct(const SemanticResult *result, StrSlice name);
 const SemanticBuiltinInfo *semantic_lookup_builtin(const SemanticResult *result, StrSlice name);
 bool semantic_global_const_value(const SemanticResult *result, StrSlice name, ConstValue *out_value);
-bool semantic_expr_type(const SemanticResult *result, const Expr *expr, Type *out_type);
-bool semantic_expr_const_value(const SemanticResult *result, const Expr *expr, ConstValue *out_value);
 
 #endif

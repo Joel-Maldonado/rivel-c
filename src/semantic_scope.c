@@ -126,26 +126,6 @@ const BindingInfo *analyzer_resolve_local(const Analyzer *analyzer, StrSlice nam
 }
 
 SemanticGlobalRecord *analyzer_lookup_global_record_mut(Analyzer *analyzer, StrSlice name) {
-    size_t index;
-
-    if (!semantic_symbol_table_get(&analyzer->result->global_names, name, &index)) {
-        return NULL;
-    }
-    return semantic_global_table_get(&analyzer->result->globals, index);
+    return (SemanticGlobalRecord *)semantic_table_lookup(&analyzer->result->globals, name);
 }
 
-const SemanticGlobalInfo *analyzer_lookup_global(const Analyzer *analyzer, StrSlice name) {
-    return semantic_lookup_global(analyzer->result, name);
-}
-
-const SemanticFunctionInfo *analyzer_lookup_function(const Analyzer *analyzer, StrSlice name) {
-    return semantic_lookup_function(analyzer->result, name);
-}
-
-const SemanticStructInfo *analyzer_lookup_struct(const Analyzer *analyzer, StrSlice name) {
-    return semantic_lookup_struct(analyzer->result, name);
-}
-
-const SemanticBuiltinInfo *analyzer_lookup_builtin(const Analyzer *analyzer, StrSlice name) {
-    return semantic_lookup_builtin(analyzer->result, name);
-}

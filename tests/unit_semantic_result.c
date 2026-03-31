@@ -81,12 +81,12 @@ static void test_semantic_result_tracks_expr_types(void) {
 
     main_decl = decl_list_get(&program.decls, 1U);
     return_stmt = stmt_list_get(&main_decl->as.function.body->statements, 0U);
-    assert(semantic_expr_type(result, return_stmt->as.ret.value, &expr_type));
+    assert(expr_resolved_type(return_stmt->as.ret.value, &expr_type));
     assert(expr_type.kind == TYPE_INT);
 
     assert(semantic_global_const_value(result, slice_from_cstr("BASE"), &global_value));
     assert(global_value.type.kind == TYPE_INT);
-    assert(global_value.int_value == 42);
+    assert(global_value.as.int_value == 42);
 
     semantic_result_dispose(result);
     error_free(&error);
@@ -126,13 +126,13 @@ static void test_semantic_result_tracks_const_values_and_shadowing(void) {
     assert(semantic_analyze(&program, result, &error));
 
     global_decl = decl_list_get(&program.decls, 0U);
-    assert(semantic_expr_const_value(result, global_decl->as.global_const.initializer, &expr_value));
+    assert(expr_const_value(global_decl->as.global_const.initializer, &expr_value));
     assert(expr_value.type.kind == TYPE_INT);
-    assert(expr_value.int_value == 42);
+    assert(expr_value.as.int_value == 42);
 
     main_decl = decl_list_get(&program.decls, 1U);
     return_stmt = stmt_list_get(&main_decl->as.function.body->statements, 1U);
-    assert(semantic_expr_type(result, return_stmt->as.ret.value, &expr_type));
+    assert(expr_resolved_type(return_stmt->as.ret.value, &expr_type));
     assert(expr_type.kind == TYPE_INT);
 
     semantic_result_dispose(result);
@@ -179,16 +179,16 @@ static void test_semantic_result_tracks_double_widening(void) {
     assert(strcmp(type_display_name(global_value.type), "Double") == 0);
 
     global_decl = decl_list_get(&program.decls, 0U);
-    assert(semantic_expr_type(result, global_decl->as.global_const.initializer, &expr_type));
+    assert(expr_resolved_type(global_decl->as.global_const.initializer, &expr_type));
     assert(strcmp(type_display_name(expr_type), "Double") == 0);
 
     double_fn = decl_list_get(&program.decls, 1U);
-    assert(semantic_expr_type(result, stmt_list_get(&double_fn->as.function.body->statements, 0U)->as.ret.value, &expr_type));
+    assert(expr_resolved_type(stmt_list_get(&double_fn->as.function.body->statements, 0U)->as.ret.value, &expr_type));
     assert(strcmp(type_display_name(expr_type), "Double") == 0);
 
     main_decl = decl_list_get(&program.decls, 2U);
     binding_stmt = stmt_list_get(&main_decl->as.function.body->statements, 0U);
-    assert(semantic_expr_type(result, binding_stmt->as.binding.initializer, &expr_type));
+    assert(expr_resolved_type(binding_stmt->as.binding.initializer, &expr_type));
     assert(strcmp(type_display_name(expr_type), "Double") == 0);
 
     semantic_result_dispose(result);
@@ -224,21 +224,21 @@ static void test_semantic_result_tracks_string_values_and_builtin_types(void) {
 
     assert(semantic_global_const_value(result, slice_from_cstr("GREETING"), &greeting_value));
     assert(greeting_value.type.kind == TYPE_STRING);
-    assert(greeting_value.string_value.len == 11U);
-    assert(memcmp(greeting_value.string_value.data, "hello world", 11U) == 0);
+    assert(greeting_value.as.string_value.len == 11U);
+    assert(memcmp(greeting_value.as.string_value.data, "hello world", 11U) == 0);
 
     assert(semantic_global_const_value(result, slice_from_cstr("HAS_WORLD"), &contains_value));
     assert(contains_value.type.kind == TYPE_BOOL);
-    assert(contains_value.bool_value);
+    assert(contains_value.as.bool_value);
 
     main_decl = decl_list_get(&program.decls, 2U);
     binding_stmt = stmt_list_get(&main_decl->as.function.body->statements, 0U);
     return_stmt = stmt_list_get(&main_decl->as.function.body->statements, 1U);
 
-    assert(semantic_expr_type(result, binding_stmt->as.binding.initializer, &expr_type));
+    assert(expr_resolved_type(binding_stmt->as.binding.initializer, &expr_type));
     assert(expr_type.kind == TYPE_STRING);
 
-    assert(semantic_expr_type(result, return_stmt->as.ret.value, &expr_type));
+    assert(expr_resolved_type(return_stmt->as.ret.value, &expr_type));
     assert(expr_type.kind == TYPE_INT);
 
     semantic_result_dispose(result);
@@ -277,11 +277,11 @@ static void test_semantic_result_tracks_struct_types_and_field_access(void) {
     binding_stmt = stmt_list_get(&main_decl->as.function.body->statements, 0U);
     return_stmt = stmt_list_get(&main_decl->as.function.body->statements, 2U);
 
-    assert(semantic_expr_type(result, binding_stmt->as.binding.initializer, &expr_type));
+    assert(expr_resolved_type(binding_stmt->as.binding.initializer, &expr_type));
     assert(expr_type.kind == TYPE_STRUCT);
     assert(slice_equal_cstr(expr_type.struct_name, "Person"));
 
-    assert(semantic_expr_type(result, return_stmt->as.ret.value, &expr_type));
+    assert(expr_resolved_type(return_stmt->as.ret.value, &expr_type));
     assert(expr_type.kind == TYPE_INT);
 
     semantic_result_dispose(result);

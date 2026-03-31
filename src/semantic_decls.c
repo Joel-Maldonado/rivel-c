@@ -1,12 +1,12 @@
 #include "semantic_internal.h"
 
 static bool analyzer_ensure_unique_top_level_name(Analyzer *analyzer, Token token, StrSlice name) {
-    if (semantic_symbol_table_contains(&analyzer->result->builtin_names, name)) {
+    if (semantic_table_contains(&analyzer->result->builtins, name)) {
         return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Top-level name `%.*s` is reserved for a builtin", (int)name.len, name.data);
     }
-    if (semantic_symbol_table_contains(&analyzer->result->global_names, name)
-        || semantic_symbol_table_contains(&analyzer->result->function_names, name)
-        || semantic_symbol_table_contains(&analyzer->result->struct_names, name)) {
+    if (semantic_table_contains(&analyzer->result->globals, name)
+        || semantic_table_contains(&analyzer->result->functions, name)
+        || semantic_table_contains(&analyzer->result->structs, name)) {
         return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Top-level name `%.*s` is already declared", (int)name.len, name.data);
     }
     return true;
@@ -16,7 +16,7 @@ static bool analyzer_validate_declared_type(Analyzer *analyzer, Token token, Typ
     if (type.kind != TYPE_STRUCT) {
         return true;
     }
-    if (analyzer_lookup_struct(analyzer, type.struct_name) != NULL) {
+    if (semantic_lookup_struct(analyzer->result,type.struct_name) != NULL) {
         return true;
     }
     return error_set_at(analyzer->error, "Semantic", token.line, token.column, "Unknown struct type `%.*s`", (int)type.struct_name.len, type.struct_name.data);
@@ -90,7 +90,7 @@ static bool analyzer_validate_struct_field_types(Analyzer *analyzer, const Decl 
             if (slice_equal(field->type.struct_name, decl->name)) {
                 return error_set_at(analyzer->error, "Semantic", field->token.line, field->token.column, "Recursive struct definitions are not supported");
             }
-            if (analyzer_lookup_struct(analyzer, field->type.struct_name) == NULL) {
+            if (semantic_lookup_struct(analyzer->result,field->type.struct_name) == NULL) {
                 return error_set_at(analyzer->error,
                                     "Semantic",
                                     field->token.line,
@@ -130,18 +130,13 @@ bool analyzer_register_builtins(Analyzer *analyzer) {
     size_t index = 0U;
 
     while (index < sizeof(builtin_specs) / sizeof(builtin_specs[0])) {
-        SemanticBuiltinInfo *builtin = semantic_builtin_table_push(&analyzer->result->builtins, analyzer->error);
+        SemanticBuiltinInfo *builtin = (SemanticBuiltinInfo *)semantic_table_add(
+            &analyzer->result->builtins, slice_from_cstr(builtin_specs[index].name), analyzer->error);
 
         if (builtin == NULL) {
             return false;
         }
         builtin->kind = builtin_specs[index].kind;
-        if (!semantic_symbol_table_set(&analyzer->result->builtin_names,
-                                       slice_from_cstr(builtin_specs[index].name),
-                                       semantic_builtin_table_len(&analyzer->result->builtins) - 1U,
-                                       analyzer->error)) {
-            return false;
-        }
         index += 1U;
     }
 
@@ -160,51 +155,36 @@ bool analyzer_collect_top_level_declarations(Analyzer *analyzer) {
             if (!analyzer_ensure_unique_top_level_name(analyzer, decl->token, decl->name)) {
                 return false;
             }
-
-            record = semantic_global_table_push(&analyzer->result->globals, analyzer->error);
+            record = (SemanticGlobalRecord *)semantic_table_add(&analyzer->result->globals, decl->name, analyzer->error);
             if (record == NULL) {
                 return false;
             }
-
             record->info.decl = decl;
             record->info.type = type_make_int();
             record->info.value = const_value_make_int(0);
             record->visit_state = GLOBAL_UNVISITED;
-            if (!semantic_symbol_table_set(&analyzer->result->global_names, decl->name, semantic_global_table_len(&analyzer->result->globals) - 1U, analyzer->error)) {
-                return false;
-            }
         } else if (decl->kind == DECL_FUNCTION) {
             SemanticFunctionInfo *info;
 
             if (!analyzer_ensure_unique_top_level_name(analyzer, decl->token, decl->name)) {
                 return false;
             }
-
-            info = semantic_function_table_push(&analyzer->result->functions, analyzer->error);
+            info = (SemanticFunctionInfo *)semantic_table_add(&analyzer->result->functions, decl->name, analyzer->error);
             if (info == NULL) {
                 return false;
             }
-
             info->decl = decl;
-            if (!semantic_symbol_table_set(&analyzer->result->function_names, decl->name, semantic_function_table_len(&analyzer->result->functions) - 1U, analyzer->error)) {
-                return false;
-            }
         } else if (decl->kind == DECL_STRUCT) {
             SemanticStructInfo *info;
 
             if (!analyzer_ensure_unique_top_level_name(analyzer, decl->token, decl->name)) {
                 return false;
             }
-
-            info = semantic_struct_table_push(&analyzer->result->structs, analyzer->error);
+            info = (SemanticStructInfo *)semantic_table_add(&analyzer->result->structs, decl->name, analyzer->error);
             if (info == NULL) {
                 return false;
             }
-
             info->decl = decl;
-            if (!semantic_symbol_table_set(&analyzer->result->struct_names, decl->name, semantic_struct_table_len(&analyzer->result->structs) - 1U, analyzer->error)) {
-                return false;
-            }
         }
 
         index += 1U;

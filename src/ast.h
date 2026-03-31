@@ -18,14 +18,13 @@ typedef enum {
 typedef struct {
     TypeKind kind;
     StrSlice struct_name;
-    const char *struct_name_cstr;
 } Type;
 
 Type type_make_int(void);
 Type type_make_double(void);
 Type type_make_bool(void);
 Type type_make_string(void);
-Type type_make_struct(StrSlice struct_name, const char *struct_name_cstr);
+Type type_make_struct(StrSlice struct_name);
 
 const char *type_display_name(Type type);
 bool type_equal(Type lhs, Type rhs);
@@ -34,10 +33,12 @@ bool type_can_widen_to(Type source, Type target);
 
 typedef struct {
     Type type;
-    int64_t int_value;
-    double double_value;
-    bool bool_value;
-    StrSlice string_value;
+    union {
+        int64_t int_value;
+        double double_value;
+        bool bool_value;
+        StrSlice string_value;
+    } as;
 } ConstValue;
 
 ConstValue const_value_make_int(int64_t value);

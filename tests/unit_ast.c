@@ -25,7 +25,7 @@ static void test_type_constructors_build_expected_values(void) {
     Type double_type = type_make_double();
     Type bool_type = type_make_bool();
     Type string_type = type_make_string();
-    Type struct_type = type_make_struct(slice_from_cstr("Person"), "Person");
+    Type struct_type = type_make_struct(slice_from_cstr("Person"));
 
     assert(int_type.kind == TYPE_INT);
     assert(double_type.kind == TYPE_DOUBLE);
@@ -53,7 +53,7 @@ static void test_expr_semantic_annotations_round_trip(void) {
     assert(out_type.kind == TYPE_BOOL);
     assert(expr_const_value(&expr, &out_value));
     assert(out_value.type.kind == TYPE_BOOL);
-    assert(out_value.bool_value);
+    assert(out_value.as.bool_value);
 }
 
 static void test_semantic_analysis_populates_expr_annotations(void) {
@@ -88,11 +88,11 @@ static void test_semantic_analysis_populates_expr_annotations(void) {
 
     assert(expr_const_value(global_decl->as.global_const.initializer, &const_value));
     assert(const_value.type.kind == TYPE_INT);
-    assert(const_value.int_value == 42);
+    assert(const_value.as.int_value == 42);
 
     assert(expr_resolved_type(return_stmt->as.ret.value, &expr_type));
     assert(expr_type.kind == TYPE_INT);
-    assert(semantic_expr_type(result, return_stmt->as.ret.value, &expr_type));
+    assert(expr_resolved_type(return_stmt->as.ret.value, &expr_type));
     assert(expr_type.kind == TYPE_INT);
 
     semantic_result_dispose(result);
