@@ -2,7 +2,7 @@
 
 Rivel provides one language server for LSP clients, a Tree-sitter grammar for
 Zed and other structural editors, and a TextMate grammar for VS Code, Sublime
-Text, and TextMate.
+Text, and TextMate. Both `.rivel` and the shorter `.rv` extension are recognized.
 
 ## Build the language server
 
@@ -24,7 +24,7 @@ Supported features:
 - Function signatures, document outline, workspace symbol search, and folding.
 - Inferred type inlay hints and semantic highlighting where enabled by the editor.
 
-Each `.rivel` file is an independent program today. Navigation and rename stay
+Each source file is an independent program today. Navigation and rename stay
 within that file; workspace search lists symbols across files. Rename requires
 an error-free buffer and checks the proposed result for name conflicts.
 Formatting and code actions are not implemented. See [server details](../tools/lsp/README.md).
@@ -47,7 +47,7 @@ npm run package
 Use **Extensions: Install from VSIX** to install `dist/rivel-0.2.0.vsix` from the
 repository root. Set `rivel.serverPath` to the absolute path of `bin/rivel-lsp`
 if it is not on PATH. `rivel.compilerPath` optionally overrides `rivelc`.
-The extension starts the server for `.rivel` files in trusted workspaces and
+The extension starts the server for `.rivel` and `.rv` files in trusted workspaces and
 supports unsaved untitled Rivel documents. Use **Rivel: Restart Language Server**
 after changing settings. Syntax highlighting and snippets remain available
 without a server, including in untrusted workspaces.
@@ -59,7 +59,7 @@ The test uses an isolated profile under `build/vscode-lsp-qa`.
 ## Neovim 0.11+
 
 ```lua
-vim.filetype.add({ extension = { rivel = 'rivel' } })
+vim.filetype.add({ extension = { rivel = 'rivel', rv = 'rivel' } })
 vim.lsp.config('rivel', {
   cmd = { '/absolute/path/to/rivel-c/bin/rivel-lsp', '--stdio' },
   filetypes = { 'rivel' },
@@ -79,6 +79,7 @@ The server provides semantic tokens. For Tree-sitter highlighting, register
   (setq-local comment-start "// ")
   (setq-local comment-end ""))
 (add-to-list 'auto-mode-alist '("\\.rivel\\'" . rivel-mode))
+(add-to-list 'auto-mode-alist '("\\.rv\\'" . rivel-mode))
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
                '(rivel-mode . ("/absolute/path/to/rivel-c/bin/rivel-lsp" "--stdio"))))

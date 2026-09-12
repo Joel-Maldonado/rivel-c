@@ -38,7 +38,8 @@
           "rivel"
         ],
         "extensions": [
-          ".rivel"
+          ".rivel",
+          ".rv"
         ],
         "configuration": "./language-configuration.json"
       }

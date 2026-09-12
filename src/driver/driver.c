@@ -51,10 +51,14 @@ typedef struct Options {
 } Options;
 
 static void usage(FILE *out) {
-    fputs("usage: rivelc [options] <file.rivel>\n"
+    fputs("usage: rivel [options] <file.rivel> [args...]\n"
+          "       rivelc [options] <file.rivel>\n"
           "       rivelc run <file.rivel> [args...]\n"
           "\n"
-          "  -o <path>        output executable (default: the input name without .rivel)\n"
+          "Source files may use .rivel or .rv. rivel compiles and runs a temporary executable.\n"
+          "Put compiler options before the source file and program arguments after it.\n"
+          "\n"
+          "  -o <path>        output executable (default: the input name without .rivel/.rv)\n"
           "  -t <target>      QBE target: amd64_sysv, amd64_apple, arm64, arm64_apple, rv64\n"
           "  --emit-il        write the QBE IL next to the output and stop\n"
           "  --emit-asm       write the assembly next to the output and stop\n"
@@ -73,8 +77,11 @@ static void usage(FILE *out) {
 
 static bool parse_args(int argc, char **argv, Options *opts) {
     int i = 1;
+    const char *command = strrchr(argv[0], '/');
+    command = command == NULL ? argv[0] : command + 1;
 
     memset(opts, 0, sizeof *opts);
+    opts->run = strcmp(command, "rivel") == 0;
     if (argc > 1 && strcmp(argv[1], "run") == 0) {
         opts->run = true;
         i = 2;
@@ -133,13 +140,13 @@ static bool parse_args(int argc, char **argv, Options *opts) {
     return true;
 }
 
-/* Strips a trailing .rivel; "dir/prog.rivel" becomes "dir/prog". */
+/* Strips the source extension; "dir/prog.rv" becomes "dir/prog". */
 static char *default_output(const char *input) {
     size_t n = strlen(input);
-    const char *ext = ".rivel";
-    size_t en = strlen(ext);
+    const char *ext = strrchr(input, '.');
+    size_t en = ext == NULL ? 0 : strlen(ext);
     char *out;
-    if (n > en && strcmp(input + n - en, ext) == 0) {
+    if (ext != NULL && n > en && (strcmp(ext, ".rivel") == 0 || strcmp(ext, ".rv") == 0)) {
         out = xmalloc(n - en + 1);
         memcpy(out, input, n - en);
         out[n - en] = '\0';

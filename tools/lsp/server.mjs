@@ -281,7 +281,7 @@ async function* sourceFiles(directory) {
     if (entry.name.startsWith('.') || ignored.has(entry.name)) continue;
     const path = join(directory, entry.name);
     if (entry.isDirectory()) yield* sourceFiles(path);
-    else if (entry.isFile() && path.endsWith('.rivel')) yield path;
+    else if (entry.isFile() && /\.(rivel|rv)$/.test(path)) yield path;
   }
 }
 connection.onWorkspaceSymbol(async (p, token) => {

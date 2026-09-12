@@ -22,7 +22,7 @@ The entry point `main`, `self`, builtins, and reserved names cannot be renamed.
 
 Rivel has no imports or multi-file compilation yet. Definition, references, and
 rename therefore operate within one source file. Workspace symbol search lists
-top-level declarations and methods from open buffers and up to 200 `.rivel` files
+top-level declarations and methods from open buffers and up to 200 `.rivel`/`.rv` files
 on disk, skipping generated/vendor/hidden directories and symlinks.
 
 Capabilities: diagnostics, completion (including struct/string/list members),

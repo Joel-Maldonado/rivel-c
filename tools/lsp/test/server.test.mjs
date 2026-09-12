@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { Client, position, root } from './client.mjs';
 const source = `struct Point {
     x: int;
@@ -127,6 +130,22 @@ test('workspace symbols use unsaved files, and unrelated files keep separate def
   const def = await client.request('textDocument/definition', at('add(p'));
   assert.equal(def.uri, uri);
   assert.deepEqual(def.range.start, position(source, 'add(a'));
+});
+test('workspace search discovers .rv and .rivel files and favors unsaved .rv edits', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'rivel-workspace-'));
+  const client = new Client();
+  t.after(async () => { await client.close(); await rm(directory, { recursive: true, force: true }); });
+  for (const [file, name] of [['short.rv', 'short_name'], ['long.rivel', 'long_name'], ['ignored.txt', 'ignored_name']]) {
+    await writeFile(join(directory, file), `func ${name}() {} func main() { ${name}(); }`);
+  }
+  await client.initialize({}, [{ uri: pathToFileURL(directory).href, name: 'fixture' }]);
+  const symbols = await client.request('workspace/symbol', { query: '_name' });
+  assert.deepEqual(symbols.map(s => s.name).sort(), ['long_name', 'short_name']);
+  const uri = pathToFileURL(join(directory, 'short.rv')).href;
+  client.open('func changed_name() {} func main() { changed_name(); }', uri);
+  assert.deepEqual(await client.diagnostics(uri, 1), []);
+  const updated = await client.request('workspace/symbol', { query: '_name' });
+  assert.deepEqual(updated.map(s => s.name).sort(), ['changed_name', 'long_name']);
 });
 test('rapid edits never publish results from superseded documents', async t => {
   const { client, uri } = await withClient(t);

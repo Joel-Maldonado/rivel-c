@@ -10,7 +10,7 @@ Colors follow your editor theme, including nested comments and formatted strings
 3. Run **Extensions: Install from VSIX...** and select the package.
 4. Set `rivel.serverPath` to the absolute path of the built `bin/rivel-lsp`,
    or add the checkout's `bin` directory to PATH.
-5. Open a `.rivel` file. Its language mode should be **Rivel**.
+5. Open a `.rivel` or `.rv` file. Its language mode should be **Rivel**.
 
 `rivel.compilerPath` optionally selects a different compiler. Otherwise the
 server finds `rivelc` beside itself, through `RIVELC`, or on PATH.

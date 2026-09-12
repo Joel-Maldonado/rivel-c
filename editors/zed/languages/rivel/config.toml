@@ -1,6 +1,6 @@
 name = "Rivel"
 grammar = "rivel"
-path_suffixes = ["rivel"]
+path_suffixes = ["rivel", "rv"]
 line_comments = ["// "]
 block_comment = ["/*", "*/"]
 tab_size = 4

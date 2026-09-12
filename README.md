@@ -37,7 +37,7 @@ You need a C compiler, `make`, and the system assembler and linker. Nothing
 else.
 
 ```sh
-make               # bin/rivelc, bin/qbe, lib/rivel_rt.o
+make               # bin/rivel, bin/rivelc, bin/qbe, lib/rivel_rt.o
 make unit          # C unit tests for the runtime and compiler internals
 make test          # the language test suite (tests/cases)
 make test-examples  # runnable examples and tic-tac-toe checks
@@ -47,12 +47,25 @@ make sanitize      # everything again under ASan and UBSan
 ## Use
 
 ```sh
-bin/rivelc hello.rivel          # produces ./hello
+export PATH="$PWD/bin:$PATH"    # run once from this checkout
+rivel hello.rivel              # compile to a temporary file and run it
+rivel main.rv                  # .rv is the shorter source extension
+rivel main.rv Ada --verbose    # pass arguments to the program
+rivelc hello.rivel             # produces ./hello
 ./hello
-bin/rivelc run hello.rivel      # compile to a temporary file and run it
-bin/rivelc -o out prog.rivel    # choose the output path
-bin/rivelc -t arm64_apple ...   # cross-emit for another target (see bin/qbe -h)
+rivelc -o out prog.rivel       # choose the output path
+rivelc -t arm64_apple ...      # cross-emit for another target (see bin/qbe -h)
 ```
+
+For future terminals, add `export PATH="/absolute/path/to/rivel-c/bin:$PATH"`
+to your shell startup file (`~/.zshrc` for Zsh or `~/.bashrc` for Bash).
+Use the checkout's absolute path there. This also makes `rivel-lsp` available
+after `make lsp`.
+
+Both `.rivel` and `.rv` work with the compiler and editor integrations.
+`rivel` runs the program and returns its exit status; `rivelc` creates a reusable
+executable. `rivelc run` remains available. Put compiler options before the
+source filename and program arguments after it when running a program.
 
 Useful while developing: `--dump-tokens`, `--dump-ast`, `--dump-ir`,
 `--emit-il` (the QBE input), `--emit-asm`, and `--keep`.

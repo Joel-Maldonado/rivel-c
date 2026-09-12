@@ -11,6 +11,7 @@
   <key>fileTypes</key>
   <array>
     <string>rivel</string>
+    <string>rv</string>
   </array>
   <key>patterns</key>
   <array>

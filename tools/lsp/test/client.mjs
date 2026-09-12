@@ -38,8 +38,8 @@ export class Client {
     });
   }
   notify(method, params) { this.send({ method, params }); }
-  async initialize(options = {}) {
-    const result = await this.request('initialize', { processId: process.pid, capabilities: {}, initializationOptions: options }, true);
+  async initialize(options = {}, workspaceFolders = null) {
+    const result = await this.request('initialize', { processId: process.pid, capabilities: {}, initializationOptions: options, workspaceFolders }, true);
     this.notify('initialized', {}); return result;
   }
   open(text, uri = 'file:///tmp/rivel-language-server-test.rivel', version = 1) {

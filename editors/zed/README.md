@@ -23,7 +23,7 @@ integration. The parser supports nested comments and nested formatted strings.
 3. Install Rust using rustup. Open Zed's command palette, choose
    **zed: install dev extension**, and select `editors/zed` in this checkout.
    Zed builds the Rust adapter and downloads the WASI SDK to compile the grammar.
-4. Open a `.rivel` file. The language selector should say **Rivel**. Hover a
+4. Open a `.rivel` or `.rv` file. The language selector should say **Rivel**. Hover a
    variable, use Go to Definition, or type `value.` to request member completion.
 
 If your compiler is installed separately, configure

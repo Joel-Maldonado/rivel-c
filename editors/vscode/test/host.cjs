@@ -5,6 +5,7 @@ exports.run = async () => {
   assert.ok(extension, 'Rivel extension loaded');
   await extension.activate();
   const document = await vscode.workspace.openTextDocument(vscode.Uri.file(process.env.RIVEL_TEST_FILE));
+  assert.equal(document.languageId, 'rivel');
   await vscode.window.showTextDocument(document);
   const text = document.getText();
   const pos = document.positionAt(text.indexOf('p.x') + 2);
@@ -32,5 +33,12 @@ exports.run = async () => {
   }
   assert.ok(diagnostics.some(d => /missing/.test(d.message)), 'Live diagnostics on unsaved edit');
   await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
-  console.log('VS Code host passed: activation, hover, definition, completion, rename, unsaved diagnostics.');
+  const shortDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(process.env.RIVEL_TEST_FILE.replace(/\.rivel$/, '.rv')));
+  assert.equal(shortDocument.languageId, 'rivel', '.rv files are detected as Rivel');
+  await vscode.window.showTextDocument(shortDocument);
+  const shortPosition = shortDocument.positionAt(shortDocument.getText().lastIndexOf('message'));
+  const shortHover = await vscode.commands.executeCommand('vscode.executeHoverProvider', shortDocument.uri, shortPosition);
+  assert.ok(shortHover?.some(h => h.contents.some(c => c.value.includes('message: str'))), '.rv files receive compiler-backed hover');
+  await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+  console.log('VS Code host passed: .rivel/.rv detection, hover, definition, completion, rename, unsaved diagnostics.');
 };

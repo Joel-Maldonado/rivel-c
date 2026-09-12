@@ -1,6 +1,6 @@
 # Rivel build.
 #
-#   make            builds bin/rivelc, bin/qbe, and lib/rivel_rt.o
+#   make            builds bin/rivel, bin/rivelc, bin/qbe, and lib/rivel_rt.o
 #   make test       runs the language test suite (tests/run.sh)
 #   make test-examples checks standalone examples and the tic-tac-toe game
 #   make lsp        builds the portable Node.js language server (Node 22+)
@@ -27,7 +27,10 @@ DEPS         := $(COMPILER_OBJ:.o=.d) $(BUILD)/runtime/rivel_rt.d
 
 .PHONY: all test test-examples test-lsp lsp unit sanitize format clean qbe
 
-all: $(BIN)/rivelc $(BIN)/qbe $(RUNTIME_OBJ)
+all: $(BIN)/rivel $(BIN)/rivelc $(BIN)/qbe $(RUNTIME_OBJ)
+
+$(BIN)/rivel: $(BIN)/rivelc
+	ln -sf rivelc $@
 
 $(BIN)/rivelc: $(COMPILER_OBJ)
 	@mkdir -p $(dir $@)
@@ -59,6 +62,7 @@ test-lsp: lsp
 	npm test --prefix tools/lsp
 
 test: all
+	@RIVEL_HOME="$(RIVEL_HOME)" RIVEL_BIN="$(BIN)" RIVEL_LIB="$(LIB)" bash tests/cli.sh
 	@RIVEL_HOME="$(RIVEL_HOME)" RIVEL_BIN="$(BIN)" RIVEL_LIB="$(LIB)" tests/run.sh
 
 test-examples: all
