@@ -1,9 +1,8 @@
 # Rivel
 
-Rivel is a small, statically typed, garbage-collected language that compiles
-to native code. It borrows Python's vocabulary and its attitude that you should
-never think about memory, and C's punctuation: braces, semicolons, symbolic
-operators.
+Rivel is a Swift/Rust-style compiled language with Python ergonomics and
+Go-style inference. It is statically typed, garbage-collected, and compiles
+to native code.
 
 ```rivel
 struct Point {
