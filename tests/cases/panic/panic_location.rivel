@@ -1,0 +1,6 @@
+// panic: panic_location.rivel:5:12
+func main() -> int {
+    xs := [1];
+    i := 3;
+    return xs[i];
+}

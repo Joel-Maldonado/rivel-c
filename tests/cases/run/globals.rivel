@@ -1,0 +1,15 @@
+// exit: 42
+BASE: int = 40;
+READY := BASE == 40 && !false;
+NAME := "riv" + "el";
+SCALE: float = 2;
+COUNT := 0;
+
+func bump() { COUNT += 1; }
+
+func main() -> int {
+    bump();
+    bump();
+    println(f"{BASE} {READY} {NAME} {SCALE} {COUNT} {len(NAME)}");
+    return BASE + 2;
+}

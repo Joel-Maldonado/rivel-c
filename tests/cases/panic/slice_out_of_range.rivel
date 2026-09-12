@@ -1,0 +1,2 @@
+// panic: slice out of range
+func main() -> int { xs := [1, 2]; n := 3; ys := xs[0..n]; return len(ys); }

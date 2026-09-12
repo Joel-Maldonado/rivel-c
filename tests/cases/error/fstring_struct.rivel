@@ -1,0 +1,3 @@
+// error: cannot format a value of type `P`
+struct P { x: int; }
+func main() -> int { p := P(x: 1); println(f"{p}"); return 0; }

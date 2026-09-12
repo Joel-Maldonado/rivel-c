@@ -1,0 +1,38 @@
+struct Point {
+    x: float;
+    y: float;
+
+    func length(self) -> float {
+        return sqrt(self.x * self.x + self.y * self.y);
+    }
+
+    func scale(self, k: float) {
+        self.x *= k;
+        self.y *= k;
+    }
+}
+
+struct Person {
+    name: str;
+    age: int;
+    home: Point;
+}
+
+func birthday(p: Person) { p.age += 1; }
+
+func main() -> int {
+    p := Point(y: 4.0, x: 3.0);
+    println(p.length());
+    q := p;
+    q.x = 6.0;
+    println(p.x);
+    p.scale(2.0);
+    println(p.y);
+    ada := Person(name: "Ada", age: 36, home: Point(x: 0.0, y: 0.0));
+    birthday(ada);
+    ada.home.x = 1.5;
+    println(f"{ada.name} {ada.age} {ada.home.x}");
+    println(ada == Person(name: "Ada", age: 37, home: Point(x: 1.5, y: 0.0)));
+    println(ada != Person(name: "Ada", age: 36, home: Point(x: 1.5, y: 0.0)));
+    return 0;
+}

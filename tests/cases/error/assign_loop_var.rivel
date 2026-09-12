@@ -1,0 +1,2 @@
+// error: loop variables are immutable
+func main() -> int { for i in 0..3 { i = 2; } return 0; }

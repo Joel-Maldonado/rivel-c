@@ -1,0 +1,2 @@
+// error: unknown type `Foo`
+func main() -> int { x: Foo = 1; return 0; }

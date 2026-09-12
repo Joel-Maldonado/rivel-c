@@ -1,0 +1,2 @@
+// error: assignment expects `int`, found `float`
+func main() -> int { x: int = 1; x = 1.5; return x; }

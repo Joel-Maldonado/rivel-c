@@ -1,0 +1,2 @@
+// panic: assert
+func main() -> int { assert(1 == 2); return 0; }

@@ -1,0 +1,12 @@
+func side(tag: str, v: int) -> int {
+    println(tag);
+    return v;
+}
+
+func add(a: int, b: int) -> int { return a + b; }
+
+func main() -> int {
+    println(add(side("first", 1), side("second", 2)));
+    println(side("l", 3) * side("r", 4));
+    return 0;
+}

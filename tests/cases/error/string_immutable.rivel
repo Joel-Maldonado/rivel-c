@@ -1,0 +1,2 @@
+// error: strings are immutable
+func main() -> int { s := "abc"; s[0] = "x"; return 0; }

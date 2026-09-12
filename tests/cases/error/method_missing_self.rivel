@@ -1,0 +1,3 @@
+// error: a method's first parameter must be `self`
+struct P { x: int; func f() -> int { return 1; } }
+func main() -> int { return 0; }

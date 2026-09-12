@@ -1,0 +1,6 @@
+// warn: `x` is never used
+func main() -> int {
+    _scratch := 1;
+    x := 2;
+    return 0;
+}

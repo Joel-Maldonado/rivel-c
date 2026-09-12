@@ -1,0 +1,2 @@
+// panic: chr
+func main() -> int { println(chr(300)); return 0; }

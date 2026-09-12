@@ -1,157 +1,120 @@
 # Rivel
 
-Rivel is a small statically typed, compiled, language. This repo is mostly a toy compiler project I made to learn more about compilers. As such, it is extremely experimental and not meant at all to be production level.
-
-That said, it already has the fundamentals: variables, constants, conditionals, while/for loops, functions, and structs.
-
-Right now the compiler automatically compiles Rivel source code to C which then produces a native executable via gcc:
-
-`Rivel -> automatically generated C -> native executable`
-
-If you want the exact syntax and behavior, see [docs/grammar.md](docs/grammar.md). If you want a fuller showcase of what Rivel looks like today, run the `example.rivel`.
-
-## Quickstart
-
-### Prerequisites
-
-- `make`
-- `gcc` in your `PATH` for compiling generated C into the final executable
-
-### Build the compiler
-
-```bash
-make
-```
-
-That gives you `./rivel`, the rivel compiler.
-
-### Try a small program
-
-Create `hello.rivel`:
+Rivel is a small, statically typed, garbage-collected language that compiles
+to native code. It borrows Python's vocabulary and its attitude that you should
+never think about memory, and C's punctuation: braces, semicolons, symbolic
+operators.
 
 ```rivel
-// Constant
-const BASE: Int = 40
+struct Point {
+    x: float;
+    y: float;
 
-// Function
-fn add_one(x: Int) -> Int {
-    return x * 2 + 1
+    func length(self) -> float {
+        return sqrt(self.x * self.x + self.y * self.y);
+    }
 }
 
-// Main entry point
-fn main() -> Int {
-    const result = add_one(BASE)
-    println("result=${result}")
-    return 0
+func main() -> int {
+    p := Point(x: 3.0, y: 4.0);
+    names: list[str] = [];
+    for i in 0..3 {
+        names.append(f"point {i}");
+    }
+    println(f"{p.length()} {names[1]} {len(names)}");
+    return 0;
 }
 ```
 
-Compile and run it:
+The compiler is written in C11. It lowers programs to a small typed IR and
+hands that to [QBE](https://c9x.me/compile/), a vendored backend that does
+instruction selection and register allocation for x86-64, AArch64, and
+RISC-V on Linux and macOS. The runtime (garbage collector, strings, lists,
+panics) is a single C file linked into every program.
 
-```bash
-./rivel -o hello hello.rivel
+## Build
+
+You need a C compiler, `make`, and the system assembler and linker. Nothing
+else.
+
+```sh
+make            # bin/rivelc, bin/qbe, lib/rivel_rt.o
+make unit       # C unit tests for the runtime and compiler internals
+make test       # the language test suite (tests/cases)
+make sanitize   # everything again under ASan and UBSan
+```
+
+## Use
+
+```sh
+bin/rivelc hello.rivel          # produces ./hello
 ./hello
+bin/rivelc run hello.rivel      # compile to a temporary file and run it
+bin/rivelc -o out prog.rivel    # choose the output path
+bin/rivelc -t arm64_apple ...   # cross-emit for another target (see bin/qbe -h)
 ```
 
-Expected behavior:
+Useful while developing: `--dump-tokens`, `--dump-ast`, `--dump-ir`,
+`--emit-il` (the QBE input), `--emit-asm`, and `--keep`.
 
-- `./hello` prints `81`
-- the process exits with status `0`
+The compiler finds `bin/qbe` and `lib/rivel_rt.o` relative to the checkout it
+was built in. Set `RIVEL_HOME` to point it elsewhere, and `CC` to choose the
+C compiler used for assembling and linking.
 
-If you want to keep the automatically generated C code around:
+## The language
 
-```bash
-./rivel -o hello hello.rivel --emit-c
-./hello
-ls hello hello.c
+The full contract is in [docs/spec.md](docs/spec.md). In short:
+
+- `int` (64-bit, overflow panics), `float`, `bool`, `str` (immutable UTF-8
+  bytes), `list[T]`, structs with methods, and `T?` optionals with `null`
+- structs are reference types; assignment shares, `==` compares structurally
+- optionals must be checked before use; the checker narrows `x` to `T` inside
+  `if x != null` and after early returns
+- `x := e;` declares with inference, `x: T = e;` with a type; no shadowing
+- `if`/`else if`/`else`, `while`, `for x in a..b`, `for x in list`, `break`,
+  `continue`
+- f-strings: `f"{name} has {n} items"`
+- floor division and modulo, left-to-right evaluation, panics with locations
+  for out-of-range indexes, overflow, and division by zero
+
+Errors are reported all at once, with the source line and a caret:
+
+```
+prog.rivel:12:14: error: `total: int` expects `int`, found `str`
+    total: int = "0";
+                 ^~~
 ```
 
-Flags:
-- `-o <name>` changes the executable name
-- `--emit-c` saves the automatically generated C code
+## Project layout
 
-### Run the full example
-
-The repo also includes a larger `example.rivel` program that shows strings, doubles, loops, helper functions, and a readable multi-section report.
-
-```bash
-./rivel -o example example.rivel --emit-c
-./example
+```
+src/base/      arena, vectors, string map, diagnostics with spans
+src/lex/       tokenizer, including f-string modes
+src/parse/     recursive-descent parser with error recovery
+src/ast/       syntax tree and --dump-ast
+src/sema/      types, symbols, checker, narrowing, constant folding
+src/ir/        the IR, --dump-ir
+src/lower/     AST to IR
+src/backend/   IR to QBE IL
+src/driver/    command line, running qbe and cc
+runtime/       rivel_rt.c: garbage collector, strings, lists, io, panics
+third_party/   QBE, vendored unmodified
+tests/cases/   language tests: run, error, panic, warn (see tests/run.sh)
+tests/unit/    C unit tests
+docs/          spec.md, architecture.md, qbe-notes.md
+examples/      small programs
+legacy/        the previous C-transpiling compiler, kept for reference
 ```
 
-## What It Can Do Right Now
+See [docs/architecture.md](docs/architecture.md) for how the pieces fit and
+how to add a language feature.
 
-### Declarations and Types
+## Status
 
-- built-in types: `Int`, `Double`, `Bool`, and `String`
-- local `const` and `mut` bindings
-- function declarations with explicit parameter and return types
-- required entrypoint `fn main() -> Int`
-- top-level `struct` declarations
-- nominal struct types with named fields
+Working today: everything in the spec. Not yet: modules, enums and `match`,
+dictionaries, closures. The roadmap is to grow the language only as far as
+the compiler itself needs, then rewrite the compiler in Rivel.
 
-### Statements and Control Flow
+## License
 
-- C-style comments with `//` and `/* ... */`
-- `return <expr>`
-- `if` / `elif` / `else`
-- `while`
-- `for i in start..end` and `for i in start..=end` over `Int` ranges
-- assignments to `mut` bindings
-- assignments to fields through mutable local struct bindings
-- function-call statements such as `print(x)`, `println(x)`, or `helper()`
-
-### Expressions
-
-- struct literals such as `Person { name: "John", age: 23 }`
-- interpolated strings such as `"Hello, ${name}"` and `"count=${value + 1}"`
-- field access with `.`, such as `person.age`
-- named function calls in expression position
-- grouped expressions with `(...)`
-- unary operators: `-`, `not`
-- arithmetic operators: `+`, `-`, `*`, `/`, `%`
-- comparison operators: `==`, `!=`, `<`, `<=`, `>`, `>=`
-- logical operators: `and`, `or`
-
-### Functions, Scope, and Runtime Behavior
-
-- forward calls and recursion
-- statement-only output builtins `print` (inline) and `println` (newline)
-- string builtins `len`, `substr`, `contains`, `starts_with`, `ends_with`
-- string literals support `${...}` interpolation plus the escapes `\\`, `\"`, `\n`, `\r`, `\t`
-- struct values are copied by value; string-containing structs retain and release nested strings automatically
-- strings are immutable UTF-8 byte sequences, and `len` and `substr` use byte counts
-
-## What It Does Not Do
-
-The language is very tiny, basic, and underdeveloed. Some current limits:
-
-- no arrays yet
-- one input file per compiler invocation
-- no imports or modules
-- `print(...)` and `println(...)` are statement-only builtins, not expressions
-
-## Testing
-
-To run the language and integration suite against the compiled compiler:
-
-```bash
-bash tests/run_tests.sh
-```
-
-To run the C unit tests for the compiler implementation itself:
-
-```bash
-bash tests/run_unit_tests.sh
-```
-
-## If You Want To Poke Around The Compiler
-
-The compiler is laid out as a pretty direct staged pipeline:
-
-- `src/tokenizer.c`: lexical analysis and separator/comment handling
-- `src/parser*.c`: declarations, statements, and expression parsing
-- `src/ast.c` / `src/ast.h`: syntax tree types plus semantic annotations attached to expressions
-- `src/semantic*.c`: declaration collection, scope handling, name resolution, type checking, constant evaluation, and entrypoint validation
-- `src/backend_c*.c`: C code generation, naming/lifetime helpers, and runtime emission
-- `src/driver*.c` and `src/main.c`: CLI handling, pipeline orchestration, file I/O, generated-C emission, and host compiler invocation
+MIT. QBE is MIT, copyright Quentin Carbonneaux; see `third_party/README.md`.

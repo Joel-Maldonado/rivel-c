@@ -1,0 +1,16 @@
+// exit: 35
+func main() -> int {
+    x := 10;
+    y: int = 32;
+    y = y;
+    z: float = x;
+    x += 1;
+    x -= 2;
+    x *= 3;
+    x /= 2;
+    x %= 5;
+    println(x);
+    println(y);
+    println(z);
+    return x + y;
+}

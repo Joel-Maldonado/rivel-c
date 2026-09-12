@@ -1,0 +1,49 @@
+struct Node {
+    value: int;
+    next: Node?;
+}
+
+func last(node: Node?) -> int {
+    cur := node;
+    while cur != null {
+        if cur.next == null {
+            return cur.value;
+        }
+        cur = cur.next;
+    }
+    return -1;
+}
+
+func describe(n: int?) -> str {
+    if n == null {
+        return "none";
+    }
+    return f"some {n + 1}";
+}
+
+func maybe(flag: bool) -> str? {
+    if flag { return "yes"; }
+    return null;
+}
+
+func main() -> int {
+    chain := Node(value: 1, next: Node(value: 2, next: Node(value: 3, next: null)));
+    println(last(chain));
+    println(last(null));
+    println(describe(41));
+    println(describe(null));
+    println(maybe(true) ?? "default");
+    println(maybe(false) ?? "default");
+    x: int? = 5;
+    y: int? = null;
+    println(x == 5);
+    println(y == null);
+    println(x != null && x > 3);
+    println((x ?? 0) + (y ?? 10));
+    if y == null { println("still null"); }
+    f: float? = 2.5;
+    b: bool? = true;
+    println(f ?? 0.0);
+    println(b ?? false);
+    return 0;
+}

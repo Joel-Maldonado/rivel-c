@@ -1,0 +1,2 @@
+// panic: pop from empty list
+func main() -> int { xs: list[int] = []; return xs.pop(); }

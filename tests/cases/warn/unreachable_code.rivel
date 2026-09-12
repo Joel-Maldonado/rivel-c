@@ -1,0 +1,5 @@
+// warn: unreachable code
+func main() -> int {
+    return 0;
+    println("never");
+}

@@ -1,0 +1,34 @@
+func main() -> int {
+    xs: list[int] = [];
+    println(len(xs));
+    xs.append(3);
+    xs.append(1);
+    xs.append(2);
+    println(xs[0]);
+    xs[0] = 30;
+    println(xs[0]);
+    xs[1] += 10;
+    println(xs[1]);
+    println(len(xs));
+    println(xs.pop());
+    println(len(xs));
+    xs.insert(0, 7);
+    println(xs[0]);
+    println(xs.remove_at(1));
+    println(xs.contains(11));
+    println(xs.contains(99));
+    println(xs.index_of(11));
+    ys := [1, 2, 3, 4, 5];
+    zs := ys[1..4];
+    println(len(zs));
+    println(zs[0]);
+    println(ys == [1, 2, 3, 4, 5]);
+    println(zs != ys);
+    xs.clear();
+    println(len(xs));
+    fs := [1, 2.5];
+    println(fs[0]);
+    words := ["b", "a"];
+    println(words.contains("a"));
+    return 0;
+}

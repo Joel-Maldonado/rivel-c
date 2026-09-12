@@ -1,0 +1,2 @@
+// error: `list[int]` has no method `push`
+func main() -> int { xs := [1]; xs.push(2); return 0; }

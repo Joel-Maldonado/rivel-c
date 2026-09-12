@@ -1,0 +1,4 @@
+// error: `B` is used before its declaration
+A := B + 1;
+B := 2;
+func main() -> int { return A; }

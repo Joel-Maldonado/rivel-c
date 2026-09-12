@@ -1,0 +1,4 @@
+// error: global initializers must be constant expressions
+func f() -> int { return 1; }
+A := f();
+func main() -> int { return A; }

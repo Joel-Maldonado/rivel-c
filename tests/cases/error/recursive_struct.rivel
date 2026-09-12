@@ -1,0 +1,4 @@
+// error: nothing could ever be constructed
+struct A { b: B; }
+struct B { a: A; }
+func main() -> int { return 0; }

@@ -1,0 +1,9 @@
+// stdin: first\nsecond\n
+func main() -> int {
+    line := read_line();
+    while line != null {
+        println(f"> {line}");
+        line = read_line();
+    }
+    return 0;
+}

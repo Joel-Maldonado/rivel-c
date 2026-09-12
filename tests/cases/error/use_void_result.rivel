@@ -1,0 +1,3 @@
+// error: this call returns nothing
+func f() {}
+func main() -> int { x := f(); return 0; }

@@ -1,0 +1,28 @@
+func main() -> int {
+    total := 0;
+    for i in 0..7 { total += i; }
+    print(total);
+    print(" ");
+    total = 0;
+    for i in 1..=6 { total += i; }
+    print(total);
+    print(" ");
+    count := 0;
+    for i in 5..2 { count += 1; }
+    for i in 5..=5 { count += 10; }
+    println(count);
+    for i in 0..10 {
+        if i % 2 == 0 { continue; }
+        if i > 7 { break; }
+        print(i);
+    }
+    println("");
+    limit := 4;
+    total = 0;
+    for i in 0..limit {
+        limit = 0;
+        total += i;
+    }
+    println(total);
+    return 0;
+}

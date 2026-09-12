@@ -1,0 +1,2 @@
+// error: `main` takes no parameters
+func main(x: int) -> int { return 0; }

@@ -1,0 +1,2 @@
+// error: operator `+` is not defined for `int?` and `int`
+func main() -> int { x: int? = 1; return x + 1; }

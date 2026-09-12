@@ -1,0 +1,2 @@
+// error: cannot iterate over a value of type `int`
+func main() -> int { for x in 5 { } return 0; }

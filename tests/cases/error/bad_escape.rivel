@@ -1,0 +1,2 @@
+// error: unknown escape `\q`
+func main() -> int { s := "bad \q"; return 0; }

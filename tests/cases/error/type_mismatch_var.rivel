@@ -1,0 +1,2 @@
+// error: `x: str` expects `str`, found `int`
+func main() -> int { x: str = 5; return 0; }

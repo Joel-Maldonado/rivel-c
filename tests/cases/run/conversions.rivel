@@ -1,0 +1,19 @@
+func main() -> int {
+    println(str(42));
+    println(str(3.0));
+    println(str(0.1));
+    println(str(1e21));
+    println(str(true));
+    println(int(3.99));
+    println(int(-3.99));
+    println(float(7));
+    println(int("42") ?? -1);
+    println(int("x") ?? -1);
+    println(int("+5") ?? -1);
+    println(float("2.5") ?? -1.0);
+    println(float("nope") ?? -1.0);
+    println(1 + 2.5);
+    x: float = 3;
+    println(x);
+    return 0;
+}

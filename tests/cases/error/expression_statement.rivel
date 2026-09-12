@@ -1,0 +1,2 @@
+// error: only calls can be used as statements
+func main() -> int { 1 + 2; return 0; }

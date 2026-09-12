@@ -1,0 +1,8 @@
+// error: `a: int` expects `int`, found `bool`
+// error: `b: int` expects `int`, found `str`
+// error: unknown name `c`
+func main() -> int {
+    a: int = true;
+    b: int = "x";
+    return c;
+}

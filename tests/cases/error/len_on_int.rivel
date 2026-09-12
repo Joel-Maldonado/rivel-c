@@ -1,0 +1,2 @@
+// error: `len` expects a str or list, found `int`
+func main() -> int { return len(3); }

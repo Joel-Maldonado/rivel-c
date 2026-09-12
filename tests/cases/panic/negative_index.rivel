@@ -1,0 +1,2 @@
+// panic: index out of range
+func main() -> int { xs := [1, 2]; i := -1; return xs[i]; }

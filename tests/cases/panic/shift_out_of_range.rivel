@@ -1,0 +1,2 @@
+// panic: shift amount out of range
+func main() -> int { n := 70; return 1 << n; }

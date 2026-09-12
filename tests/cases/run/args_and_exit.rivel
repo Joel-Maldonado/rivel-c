@@ -1,0 +1,6 @@
+// args: one two
+// exit: 7
+func main() -> int {
+    for a in args() { println(a); }
+    exit(7);
+}

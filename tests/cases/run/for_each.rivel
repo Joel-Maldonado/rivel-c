@@ -1,0 +1,13 @@
+func main() -> int {
+    xs := [10, 20, 30];
+    total := 0;
+    for x in xs { total += x; }
+    println(total);
+    for c in "abc" { print(c); print("-"); }
+    println("");
+    for f in [1.5, 2.5] { print(f); print(" "); }
+    println("");
+    for w in "a,b,,c".split(",") { print(f"[{w}]"); }
+    println("");
+    return 0;
+}

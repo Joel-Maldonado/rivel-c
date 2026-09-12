@@ -1,0 +1,2 @@
+// error: `match` is reserved
+func main() -> int { match := 1; return match; }

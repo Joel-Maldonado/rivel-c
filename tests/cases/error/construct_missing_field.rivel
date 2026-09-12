@@ -1,0 +1,3 @@
+// error: construction of `P` is missing field `y`
+struct P { x: int; y: int; }
+func main() -> int { p := P(x: 1); return p.x; }

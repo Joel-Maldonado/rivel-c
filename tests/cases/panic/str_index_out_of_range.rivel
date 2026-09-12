@@ -1,0 +1,2 @@
+// panic: index out of range
+func main() -> int { s := "ab"; i := 5; println(s[i]); return 0; }

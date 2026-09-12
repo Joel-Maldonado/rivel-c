@@ -1,0 +1,11 @@
+func main() -> int {
+    println(min(3, 9));
+    println(max(3, 9));
+    println(min(2.5, 1));
+    println(max(-1, -2.0));
+    println(abs(-4));
+    println(abs(-4.5));
+    println(wrapping_add(9223372036854775807, 1));
+    println(wrapping_mul(9223372036854775807, 2));
+    return 0;
+}

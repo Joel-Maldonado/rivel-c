@@ -1,0 +1,2 @@
+// error: list element has type `str`, but earlier elements are `int`
+func main() -> int { xs := [1, "a"]; return 0; }

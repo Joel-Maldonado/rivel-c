@@ -1,0 +1,5 @@
+// warn: `unused` is never used
+func main() -> int {
+    unused := 1;
+    return 0;
+}

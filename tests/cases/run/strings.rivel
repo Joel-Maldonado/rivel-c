@@ -1,0 +1,23 @@
+func main() -> int {
+    s := "hello" + " " + "world";
+    println(s);
+    println(len(s));
+    println(s[0]);
+    println(s[6..11]);
+    println(s.contains("lo w"));
+    println(s.starts_with("hell"));
+    println(s.ends_with("x"));
+    println(s.find("o"));
+    println(s.find("z"));
+    println(s.upper());
+    println("ABC".lower());
+    println("  padded  ".trim());
+    println(s.replace("l", "L"));
+    println("ab".repeat(3));
+    println("-".join(["a", "b", "c"]));
+    println(ord("A"));
+    println(chr(66));
+    println("tab\tquote\"nl");
+    println("brace {x} stays");
+    return 0;
+}

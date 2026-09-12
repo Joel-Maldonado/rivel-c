@@ -1,0 +1,2 @@
+// error: the return value expects `int`, found `bool`
+func main() -> int { return true; }

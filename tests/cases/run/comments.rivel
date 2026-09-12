@@ -1,0 +1,3 @@
+// line comment
+/* block /* nested */ comment */
+func main() -> int { /* inline */ return 0; } // trailing

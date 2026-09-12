@@ -1,0 +1,2 @@
+// error: may be null; check `!= null` before calling a method
+func main() -> int { s: str? = null; return len(s.trim()); }

@@ -1,0 +1,5 @@
+// error: expected `;`
+func main() -> int {
+    x := 1
+    return x;
+}

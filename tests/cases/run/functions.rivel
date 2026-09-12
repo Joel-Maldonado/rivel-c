@@ -1,0 +1,21 @@
+func main() -> int {
+    println(fact(5));
+    println(add_one(41));
+    greet("Nova");
+    println(fib(20));
+    return 0;
+}
+
+func fact(n: int) -> int {
+    if n == 0 { return 1; }
+    return n * fact(n - 1);
+}
+
+func add_one(x: int) -> int { return x + 1; }
+
+func greet(name: str) { println(f"hello, {name}"); }
+
+func fib(n: int) -> int {
+    if n < 2 { return n; }
+    return fib(n - 1) + fib(n - 2);
+}

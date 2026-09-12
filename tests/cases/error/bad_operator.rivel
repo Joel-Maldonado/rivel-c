@@ -1,0 +1,2 @@
+// error: operator `+` is not defined for `str` and `int`
+func main() -> int { return "a" + 1; }

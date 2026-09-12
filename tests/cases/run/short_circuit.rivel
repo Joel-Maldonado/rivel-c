@@ -1,0 +1,10 @@
+func side(tag: str, v: bool) -> bool {
+    println(tag);
+    return v;
+}
+
+func main() -> int {
+    if side("a", false) && side("b", true) { println("no"); }
+    if side("c", true) || side("d", true) { println("yes"); }
+    return 0;
+}

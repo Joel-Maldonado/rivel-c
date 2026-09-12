@@ -1,0 +1,4 @@
+// error: `g` can reach the end
+func f() -> int { while true { return 1; } }
+func main() -> int { return f() - 1 + g(); }
+func g() -> int { while true { break; } }

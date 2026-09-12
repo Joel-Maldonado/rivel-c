@@ -1,0 +1,3 @@
+// error: argument 1 of `f` expects `int`, found `str`
+func f(a: int) -> int { return a; }
+func main() -> int { return f("x"); }

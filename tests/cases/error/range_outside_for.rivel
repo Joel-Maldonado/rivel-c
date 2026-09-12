@@ -1,0 +1,2 @@
+// error: a range is only valid as the iterable of a `for` loop
+func main() -> int { x := 1..3; return 0; }

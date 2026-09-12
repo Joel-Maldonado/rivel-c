@@ -1,0 +1,2 @@
+// error: unknown name `nope`
+func main() -> int { return nope; }

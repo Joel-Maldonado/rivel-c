@@ -1,0 +1,3 @@
+// error: `void` is only valid as a return type
+func f(x: void) {}
+func main() -> int { return 0; }

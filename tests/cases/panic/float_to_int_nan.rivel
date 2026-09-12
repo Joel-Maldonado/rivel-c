@@ -1,0 +1,2 @@
+// panic: float to int conversion out of range
+func main() -> int { z := 0.0; return int(z / z); }
