@@ -8,8 +8,9 @@ was checked by running QBE 1.2, not just by reading the manual.
 
 ## 1. Toolchain
 
-- QBE 1.2 lives unmodified in `third_party/qbe/`; `make bin/qbe` (part of
-  `make all`) builds it. Its Makefile generates `config.h` on first build to
+- QBE 1.2 lives in `third_party/qbe/`, with the build compatibility patch
+  documented in `third_party/README.md`; `make bin/qbe` (part of `make all`)
+  builds it. Its Makefile generates `config.h` on first build to
   pick the default target from the build host's `uname`, so `bin/qbe` with no
   `-t` already targets the machine it was built on.
 - Usage: `bin/qbe [-t target] [-o out.s] file.il` (`-o -` or no `-o` means

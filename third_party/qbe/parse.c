@@ -173,7 +173,7 @@ err(char *s, ...)
 }
 
 static void
-lexinit()
+lexinit(void)
 {
 	static int done;
 	int i;
@@ -195,7 +195,7 @@ lexinit()
 }
 
 static int64_t
-getint()
+getint(void)
 {
 	uint64_t n;
 	int c, m;
@@ -216,7 +216,7 @@ getint()
 }
 
 static int
-lex()
+lex(void)
 {
 	static char tok[NString];
 	int c, i, esc;
@@ -326,7 +326,7 @@ Alpha:
 }
 
 static int
-peek()
+peek(void)
 {
 	if (thead == Txxx)
 		thead = lex();
@@ -334,7 +334,7 @@ peek()
 }
 
 static int
-next()
+next(void)
 {
 	int t;
 
@@ -344,7 +344,7 @@ next()
 }
 
 static int
-nextnl()
+nextnl(void)
 {
 	int t;
 
@@ -367,7 +367,7 @@ expect(int t)
 		[Trbrace] = "}",
 		[Teof] = 0,
 	};
-	char buf[128], *s1, *s2;
+	char *s1, *s2;
 	int t1;
 
 	t1 = next();
@@ -375,8 +375,7 @@ expect(int t)
 		return;
 	s1 = ttoa[t] ? ttoa[t] : "??";
 	s2 = ttoa[t1] ? ttoa[t1] : "??";
-	sprintf(buf, "%s expected, got %s instead", s1, s2);
-	err(buf);
+	err("%s expected, got %s instead", s1, s2);
 }
 
 static Ref
@@ -401,7 +400,7 @@ tmpref(char *v)
 }
 
 static Ref
-parseref()
+parseref(void)
 {
 	Con c;
 
@@ -566,7 +565,7 @@ findblk(char *name)
 }
 
 static void
-closeblk()
+closeblk(void)
 {
 	curb->nins = curi - insb;
 	idup(&curb->ins, insb, curb->nins);
@@ -996,7 +995,7 @@ parsefields(Field *fld, Typ *ty, int t)
 }
 
 static void
-parsetyp()
+parsetyp(void)
 {
 	Typ *ty;
 	int t, al;

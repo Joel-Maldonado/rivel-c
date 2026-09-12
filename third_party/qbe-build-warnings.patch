@@ -1,0 +1,113 @@
+diff --git a/third_party/qbe/amd64/emit.c b/third_party/qbe/amd64/emit.c
+index 51d1a5c..5eca985 100644
+--- a/third_party/qbe/amd64/emit.c
++++ b/third_party/qbe/amd64/emit.c
+@@ -194 +194 @@ regtoa(int reg, int sz)
+-		sprintf(buf, "xmm%d", reg-XMM0);
++		snprintf(buf, sizeof buf, "xmm%d", reg-XMM0);
+diff --git a/third_party/qbe/amd64/isel.c b/third_party/qbe/amd64/isel.c
+index e29c8bf..2bd8ec0 100644
+--- a/third_party/qbe/amd64/isel.c
++++ b/third_party/qbe/amd64/isel.c
+@@ -98 +98 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
+-		sprintf(buf, "\"%sfp%d\"", T.asloc, n);
++		snprintf(buf, sizeof buf, "\"%sfp%d\"", T.asloc, n);
+diff --git a/third_party/qbe/arm64/emit.c b/third_party/qbe/arm64/emit.c
+index 990d839..fbef253 100644
+--- a/third_party/qbe/arm64/emit.c
++++ b/third_party/qbe/arm64/emit.c
+@@ -119 +119 @@ rname(int r, int k)
+-		sprintf(buf, "sp");
++		snprintf(buf, sizeof buf, "sp");
+@@ -124 +124 @@ rname(int r, int k)
+-		case Kw: sprintf(buf, "w%d", r-R0); break;
++		case Kw: snprintf(buf, sizeof buf, "w%d", r-R0); break;
+@@ -126 +126 @@ rname(int r, int k)
+-		case Kl: sprintf(buf, "x%d", r-R0); break;
++		case Kl: snprintf(buf, sizeof buf, "x%d", r-R0); break;
+@@ -131 +131 @@ rname(int r, int k)
+-		case Ks: sprintf(buf, "s%d", r-V0); break;
++		case Ks: snprintf(buf, sizeof buf, "s%d", r-V0); break;
+@@ -133 +133 @@ rname(int r, int k)
+-		case Kd: sprintf(buf, "d%d", r-V0); break;
++		case Kd: snprintf(buf, sizeof buf, "d%d", r-V0); break;
+diff --git a/third_party/qbe/arm64/isel.c b/third_party/qbe/arm64/isel.c
+index 062beb3..100cf7e 100644
+--- a/third_party/qbe/arm64/isel.c
++++ b/third_party/qbe/arm64/isel.c
+@@ -115 +115 @@ fixarg(Ref *pr, int k, int phi, Fn *fn)
+-			sprintf(buf, "\"%sfp%d\"", T.asloc, n);
++			snprintf(buf, sizeof buf, "\"%sfp%d\"", T.asloc, n);
+diff --git a/third_party/qbe/cfg.c b/third_party/qbe/cfg.c
+index 406c307..f1fa21a 100644
+--- a/third_party/qbe/cfg.c
++++ b/third_party/qbe/cfg.c
+@@ -4 +4 @@ Blk *
+-newblk()
++newblk(void)
+diff --git a/third_party/qbe/parse.c b/third_party/qbe/parse.c
+index 738ec5b..a4850b7 100644
+--- a/third_party/qbe/parse.c
++++ b/third_party/qbe/parse.c
+@@ -176 +176 @@ static void
+-lexinit()
++lexinit(void)
+@@ -198 +198 @@ static int64_t
+-getint()
++getint(void)
+@@ -219 +219 @@ static int
+-lex()
++lex(void)
+@@ -329 +329 @@ static int
+-peek()
++peek(void)
+@@ -337 +337 @@ static int
+-next()
++next(void)
+@@ -347 +347 @@ static int
+-nextnl()
++nextnl(void)
+@@ -370 +370 @@ expect(int t)
+-	char buf[128], *s1, *s2;
++	char *s1, *s2;
+@@ -378,2 +378 @@ expect(int t)
+-	sprintf(buf, "%s expected, got %s instead", s1, s2);
+-	err(buf);
++	err("%s expected, got %s instead", s1, s2);
+@@ -404 +403 @@ static Ref
+-parseref()
++parseref(void)
+@@ -569 +568 @@ static void
+-closeblk()
++closeblk(void)
+@@ -999 +998 @@ static void
+-parsetyp()
++parsetyp(void)
+diff --git a/third_party/qbe/rega.c b/third_party/qbe/rega.c
+index 8e601c9..4d2a06b 100644
+--- a/third_party/qbe/rega.c
++++ b/third_party/qbe/rega.c
+@@ -250 +250 @@ static void
+-pmgen()
++pmgen(void)
+diff --git a/third_party/qbe/rv64/emit.c b/third_party/qbe/rv64/emit.c
+index a410ddf..782b0d2 100644
+--- a/third_party/qbe/rv64/emit.c
++++ b/third_party/qbe/rv64/emit.c
+@@ -236 +236 @@ loadaddr(Con *c, char *rn, FILE *f)
+-			sprintf(off, "+%"PRIi64, c->bits.i);
++			snprintf(off, sizeof off, "+%"PRIi64, c->bits.i);
+diff --git a/third_party/qbe/rv64/isel.c b/third_party/qbe/rv64/isel.c
+index 8921a07..89fed32 100644
+--- a/third_party/qbe/rv64/isel.c
++++ b/third_party/qbe/rv64/isel.c
+@@ -47 +47 @@ fixarg(Ref *r, int k, Ins *i, Fn *fn)
+-			sprintf(buf, "\"%sfp%d\"", T.asloc, n);
++			snprintf(buf, sizeof buf, "\"%sfp%d\"", T.asloc, n);
+diff --git a/third_party/qbe/util.c b/third_party/qbe/util.c
+index 362fa98..63d2e05 100644
+--- a/third_party/qbe/util.c
++++ b/third_party/qbe/util.c
+@@ -93 +93 @@ void
+-freeall()
++freeall(void)

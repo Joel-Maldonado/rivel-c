@@ -1,7 +1,7 @@
 # third_party
 
-Vendored dependencies. Nothing in here is written by us; each subdirectory is
-an unmodified copy of an upstream release plus this note.
+Vendored dependencies, with upstream versions, licenses, and local patches
+recorded below.
 
 ## qbe/ — QBE 1.2
 
@@ -9,8 +9,24 @@ an unmodified copy of an upstream release plus this note.
   tarball: https://c9x.me/compile/release/qbe-1.2.tar.xz)
 - License: MIT, copyright Quentin Carbonneaux — see `qbe/LICENSE`. That file
   applies to everything under `qbe/`.
-- Vendored unmodified. No source file has been edited; `diff -r` against the
-  upstream release tree shows no differences in the files that are kept.
+- Based on the upstream release, with the build compatibility patch below.
+
+### Local patch
+
+[`qbe-build-warnings.patch`](qbe-build-warnings.patch) is already applied to
+the checked-in sources. It gives parameterless functions explicit `(void)`
+prototypes, replaces `sprintf` with bounded `snprintf`, and passes parser
+diagnostics directly to QBE's existing variadic error function. This removes
+modern Clang warnings without disabling compiler diagnostics.
+
+To reapply it to a fresh upstream copy, run from the repository root:
+
+```sh
+git apply --unidiff-zero third_party/qbe-build-warnings.patch
+```
+
+The patch uses zero-context hunks. Review and refresh it when updating QBE;
+an upstream version may already include equivalent changes.
 
 ### What was removed
 
@@ -47,9 +63,8 @@ top level also runs QBE's `clean` (which leaves `config.h`; use
    or download and extract the tarball from https://c9x.me/compile/release/.
 2. `rm -rf third_party/qbe` and copy the fresh tree in.
 3. `rm -rf third_party/qbe/minic third_party/qbe/tools third_party/qbe/test`.
-4. Do not edit any file under `third_party/qbe/`. If a local patch is ever
-   unavoidable, keep it as a `.patch` file next to this README and record it
-   here so it can be re-applied on the next update.
+4. Review and reapply the local patch above if it is still needed. Record any
+   further source changes in a `.patch` file here so they survive updates.
 5. Update the version number and tag in this file.
 6. `make clean && make bin/qbe`, then re-run the spike in `docs/qbe-notes.md`
    and the language test suite to confirm the IL we emit still compiles.

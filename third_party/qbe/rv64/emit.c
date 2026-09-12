@@ -233,7 +233,7 @@ loadaddr(Con *c, char *rn, FILE *f)
 
 	if (c->sym.type == SThr) {
 		if (c->bits.i)
-			sprintf(off, "+%"PRIi64, c->bits.i);
+			snprintf(off, sizeof off, "+%"PRIi64, c->bits.i);
 		else
 			off[0] = 0;
 		fprintf(f, "\tlui %s, %%tprel_hi(%s)%s\n",

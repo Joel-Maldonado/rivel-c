@@ -116,21 +116,21 @@ rname(int r, int k)
 
 	if (r == SP) {
 		assert(k == Kl);
-		sprintf(buf, "sp");
+		snprintf(buf, sizeof buf, "sp");
 	}
 	else if (R0 <= r && r <= LR)
 		switch (k) {
 		default: die("invalid class");
-		case Kw: sprintf(buf, "w%d", r-R0); break;
+		case Kw: snprintf(buf, sizeof buf, "w%d", r-R0); break;
 		case Kx:
-		case Kl: sprintf(buf, "x%d", r-R0); break;
+		case Kl: snprintf(buf, sizeof buf, "x%d", r-R0); break;
 		}
 	else if (V0 <= r && r <= V30)
 		switch (k) {
 		default: die("invalid class");
-		case Ks: sprintf(buf, "s%d", r-V0); break;
+		case Ks: snprintf(buf, sizeof buf, "s%d", r-V0); break;
 		case Kx:
-		case Kd: sprintf(buf, "d%d", r-V0); break;
+		case Kd: snprintf(buf, sizeof buf, "d%d", r-V0); break;
 		}
 	else
 		die("invalid register");

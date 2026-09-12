@@ -123,7 +123,7 @@ src/lower/     AST to IR
 src/backend/   IR to QBE IL
 src/driver/    command line, running qbe and cc
 runtime/       rivel_rt.c: garbage collector, strings, lists, io, panics
-third_party/   QBE, vendored unmodified
+third_party/   QBE with a documented build compatibility patch
 tests/cases/   language tests: run, error, panic, warn (see tests/run.sh)
 tests/unit/    C unit tests
 docs/          spec.md, architecture.md, qbe-notes.md

@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: make -j
+        run: make -j CFLAGS="-O2 -g -Werror -Wstrict-prototypes"
       - name: Unit tests
         run: make unit
       - name: Language tests

@@ -191,7 +191,7 @@ regtoa(int reg, int sz)
 
 	assert(reg <= XMM15);
 	if (reg >= XMM0) {
-		sprintf(buf, "xmm%d", reg-XMM0);
+		snprintf(buf, sizeof buf, "xmm%d", reg-XMM0);
 		return buf;
 	} else
 		return rname[reg][sz];
