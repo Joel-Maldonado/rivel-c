@@ -12,5 +12,5 @@ languages = ["Rivel"]
 
 [grammars.rivel]
 repository = "https://github.com/Joel-Maldonado/rivel-c"
-rev = "main"
+rev = "25164e2ae795f9b904e05505deb250f720afd87b"
 path = "editors/tree-sitter-rivel"

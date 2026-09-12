@@ -7,6 +7,14 @@ impl zed::Extension for Rivel {
         Self
     }
 
+    fn language_server_initialization_options(
+        &mut self,
+        language_server_id: &LanguageServerId,
+        worktree: &zed::Worktree,
+    ) -> Result<Option<zed::serde_json::Value>> {
+        Ok(LspSettings::for_worktree(language_server_id.as_ref(), worktree)?.initialization_options)
+    }
+
     fn language_server_command(
         &mut self,
         language_server_id: &LanguageServerId,

@@ -11,7 +11,7 @@ fs.mkdirSync(path.dirname(config), { recursive: true });
 fs.writeFileSync(config, JSON.stringify({ 'parser-directories': [path.dirname(grammar)] }));
 function run(args) { return execFileSync(cli, args, { cwd: grammar, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }); }
 test('parse all runnable examples and language tests', () => {
-  const files = execFileSync('rg', ['--files', 'examples', 'tests/cases/run', 'tests/cases/panic', 'tests/cases/warn'], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(p => p.endsWith('.rivel'));
+  const files = ['examples', 'tests/cases/run', 'tests/cases/panic', 'tests/cases/warn'].flatMap(dir => fs.readdirSync(path.join(root, dir), { recursive: true }).filter(p => p.endsWith('.rivel')).map(p => path.join(dir, p)));
   assert.ok(files.length >= 40);
   run(['parse', '--config-path', config, '--quiet', ...files.map(p => path.join(root, p))]);
 });

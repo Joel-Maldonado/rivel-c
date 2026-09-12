@@ -41,6 +41,17 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Editor analysis under sanitizers
+        run: |
+          make lsp
+          RIVELC="$PWD/bin/san/rivelc" RIVEL_TEST_COMPILER="$PWD/bin/san/rivelc" npm test --prefix tools/lsp
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+
   format:
     name: clang-format
     runs-on: ubuntu-latest

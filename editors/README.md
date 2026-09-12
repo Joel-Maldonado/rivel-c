@@ -86,8 +86,7 @@ The server provides semantic tokens. For Tree-sitter highlighting, register
 ```
 
 Other LSP clients use the same executable, `--stdio`, and language ID `rivel`.
-The Neovim and Emacs snippets are configuration examples; automated editor-host
-testing covers Zed and VS Code.
+The Neovim and Emacs snippets are configuration examples; editor-host tests cover VS Code, with live verification in Zed.
 
 ## Portable TextMate highlighting
 

@@ -43,7 +43,9 @@ connection.onInitialized(() => {
   });
 });
 connection.onDidChangeConfiguration(event => {
-  compiler = compilerPath(event.settings?.rivel?.compilerPath);
+  const configured = event.settings?.rivel?.compilerPath;
+  if (typeof configured !== 'string') return;
+  compiler = compilerPath(configured);
   for (const document of documents.all()) schedule(document);
 });
 function cancelled(token) {

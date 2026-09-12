@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { Client, position, root } from './client.mjs';
 const source = `struct Point {
@@ -95,7 +96,7 @@ test('unsaved incremental edits publish current diagnostics and clear on close',
   assert.deepEqual(client.notifications.filter(n => n.method === 'textDocument/publishDiagnostics').at(-1).params.diagnostics, []);
 });
 test('compiler handles the whole valid and invalid corpus and a larger program', async () => {
-  const paths = execFileSync('rg', ['--files', 'tests/cases', 'examples'], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(p => p.endsWith('.rivel'));
+  const paths = ['tests/cases', 'examples'].flatMap(dir => readdirSync(root + dir, { recursive: true }).filter(p => p.endsWith('.rivel')).map(p => dir + '/' + p));
   for (const path of paths) {
     const result = JSON.parse(execFileSync(process.env.RIVEL_TEST_COMPILER || root + 'bin/rivelc', ['--analyze', path], { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }));
     assert.equal(result.schemaVersion, 1, path);
