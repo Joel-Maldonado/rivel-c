@@ -1,0 +1,21 @@
+func greet(name: str) {
+    println(f"Welcome, {name}!");
+}
+
+func rectangle_area(width: float, height: float) -> float {
+    return width * height;
+}
+
+func factorial(number: int) -> int {
+    assert(number >= 0);
+    if number <= 1 {
+        return 1;
+    }
+    return number * factorial(number - 1);
+}
+
+func main() {
+    greet("Ada");
+    println(f"Room area: {rectangle_area(4.0, 3.5)}");
+    println(f"5! = {factorial(5)}");
+}

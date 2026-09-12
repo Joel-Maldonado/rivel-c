@@ -1,4 +1,0 @@
-func main() -> int {
-    println("hello, world");
-    return 0;
-}

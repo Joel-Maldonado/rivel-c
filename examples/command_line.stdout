@@ -1,0 +1,2 @@
+Usage: command_line <name> [rounds]
+Example: bin/rivelc run examples/command_line.rivel Ada 3

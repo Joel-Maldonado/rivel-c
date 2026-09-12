@@ -1,0 +1,27 @@
+func main() {
+    countdown := 3;
+    while countdown > 0 {
+        println(f"Starting in {countdown}");
+        countdown -= 1;
+    }
+    println("Go!");
+
+    energy := 10;
+    round := 1;
+    while true {
+        if energy < 3 {
+            println(f"Rest after {round - 1} rounds: {energy} energy left");
+            break;
+        }
+
+        energy -= 3;
+        if energy >= 6 {
+            println(f"Round {round}: plenty of energy");
+        } else if energy >= 3 {
+            println(f"Round {round}: one more round");
+        } else {
+            println(f"Round {round}: time to rest");
+        }
+        round += 1;
+    }
+}

@@ -1,0 +1,30 @@
+// Structs provide class-style fields and methods, with reference semantics.
+struct Player {
+    name: str;
+    score: int;
+
+    func award(self, points: int) {
+        assert(points >= 0);
+        self.score += points;
+    }
+
+    func describe(self) -> str {
+        return f"{self.name}: {self.score} points";
+    }
+}
+
+func main() {
+    player := Player(name: "Ada", score: 0);
+    player.award(10);
+    println(player.describe());
+
+    // Assignment shares the object. Both names see the updated score.
+    teammate_view := player;
+    teammate_view.award(5);
+    println(f"Original after shared update: {player.describe()}");
+
+    // A separate construction creates an independent object.
+    rival := Player(name: "Lin", score: 0);
+    rival.award(7);
+    println(rival.describe());
+}

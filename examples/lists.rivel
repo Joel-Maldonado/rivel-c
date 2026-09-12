@@ -1,0 +1,29 @@
+func main() {
+    tasks: list[str] = [];
+    tasks.append("design");
+    tasks.append("build");
+    tasks.append("release");
+    tasks.insert(2, "test");
+
+    println("Plan: " + " -> ".join(tasks));
+    println(f"Includes testing: {tasks.contains("test")}");
+    println(f"Next: {tasks.remove_at(0)}");
+    println(f"Last: {tasks.pop()}");
+    println("Remaining: " + ", ".join(tasks));
+
+    scores := [4, 7, 9];
+    shared_scores := scores;
+    shared_scores[0] = 5;
+
+    // Slices copy the list; assignments share it.
+    recent_scores := scores[1..3];
+    recent_scores[0] = 8;
+    println(f"Shared first score: {scores[0]}");
+    println(f"Original second score: {scores[1]}, sliced score: {recent_scores[0]}");
+
+    total := 0;
+    for score in scores {
+        total += score;
+    }
+    println(f"Average score: {float(total) / len(scores)}");
+}

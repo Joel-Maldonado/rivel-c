@@ -1,0 +1,25 @@
+func main() {
+    total := 0;
+    for number in 1..=5 {
+        total += number;
+    }
+    println(f"Sum from 1 through 5: {total}");
+
+    print("Even indexes:");
+    for index in 0..8 {
+        if index % 2 != 0 {
+            continue;
+        }
+        print(f" {index}");
+    }
+    println("");
+
+    for player in ["Ada", "Lin", "Sam"] {
+        println(f"Ready: {player}");
+    }
+
+    // String iteration visits bytes, so use ASCII for individual letters.
+    for letter in "GO" {
+        println(f"Letter: {letter}");
+    }
+}

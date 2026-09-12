@@ -2,6 +2,7 @@
 #
 #   make            builds bin/rivelc, bin/qbe, and lib/rivel_rt.o
 #   make test       runs the language test suite (tests/run.sh)
+#   make test-examples checks standalone examples and the tic-tac-toe game
 #   make unit       builds and runs C unit tests (runtime and compiler)
 #   make sanitize   rebuilds everything under ASan+UBSan into build/san, bin/san, lib/san
 #   make format     runs clang-format over the sources
@@ -22,7 +23,7 @@ COMPILER_OBJ := $(COMPILER_SRC:%.c=$(BUILD)/%.o)
 RUNTIME_OBJ  := $(LIB)/rivel_rt.o
 DEPS         := $(COMPILER_OBJ:.o=.d) $(BUILD)/runtime/rivel_rt.d
 
-.PHONY: all test unit sanitize format clean qbe
+.PHONY: all test test-examples unit sanitize format clean qbe
 
 all: $(BIN)/rivelc $(BIN)/qbe $(RUNTIME_OBJ)
 
@@ -49,6 +50,9 @@ $(BIN)/qbe: $(wildcard third_party/qbe/*.c third_party/qbe/*/*.c third_party/qbe
 
 test: all
 	@RIVEL_HOME="$(RIVEL_HOME)" RIVEL_BIN="$(BIN)" RIVEL_LIB="$(LIB)" tests/run.sh
+
+test-examples: all
+	@RIVEL_HOME="$(RIVEL_HOME)" RIVEL_BIN="$(BIN)" RIVEL_LIB="$(LIB)" bash examples/test.sh
 
 UNIT_SRC := $(wildcard tests/unit/*.c)
 UNIT_BIN := $(UNIT_SRC:tests/unit/%.c=$(BUILD)/tests/unit/%)

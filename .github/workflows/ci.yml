@@ -22,6 +22,8 @@ jobs:
         run: make unit
       - name: Language tests
         run: make test
+      - name: Examples
+        run: make test-examples
 
   sanitize:
     name: ASan + UBSan

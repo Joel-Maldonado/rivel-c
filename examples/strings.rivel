@@ -1,0 +1,16 @@
+func main() {
+    title := "  Rivel game night  ".trim();
+    println(title.upper());
+    println("=".repeat(len(title)));
+
+    players := "Ada,Lin,Sam".split(",");
+    println("Players: " + " / ".join(players));
+    println(title.replace("night", "afternoon"));
+    println(f"Starts with Rivel: {title.starts_with("Rivel")}");
+    println(f"Position of game: {title.find("game")}");
+
+    // Indexes and slices use byte offsets. These strings contain ASCII.
+    println(f"First word: {title[0..5]}");
+    println(f"Initial: {players[0][0]}");
+    println(f"Literal braces: {{welcome}}");
+}

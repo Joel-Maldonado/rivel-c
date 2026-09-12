@@ -37,10 +37,11 @@ You need a C compiler, `make`, and the system assembler and linker. Nothing
 else.
 
 ```sh
-make            # bin/rivelc, bin/qbe, lib/rivel_rt.o
-make unit       # C unit tests for the runtime and compiler internals
-make test       # the language test suite (tests/cases)
-make sanitize   # everything again under ASan and UBSan
+make               # bin/rivelc, bin/qbe, lib/rivel_rt.o
+make unit          # C unit tests for the runtime and compiler internals
+make test          # the language test suite (tests/cases)
+make test-examples  # runnable examples and tic-tac-toe checks
+make sanitize      # everything again under ASan and UBSan
 ```
 
 ## Use
@@ -59,6 +60,23 @@ Useful while developing: `--dump-tokens`, `--dump-ast`, `--dump-ir`,
 The compiler finds `bin/qbe` and `lib/rivel_rt.o` relative to the checkout it
 was built in. Set `RIVEL_HOME` to point it elsewhere, and `CC` to choose the
 C compiler used for assembling and linking.
+
+## Examples
+
+Start with [hello world](examples/hello_world.rivel),
+[for loops](examples/for_loops.rivel), or
+[structs with methods](examples/structs.rivel). The
+[examples guide](examples/README.md) covers inference, functions, lists,
+strings, optionals, and command-line arguments.
+
+For a complete project, try [tic-tac-toe](examples/tic_tac_toe/README.md):
+a terminal game with an AI opponent, two-player mode, hints, undo, and a
+session scoreboard.
+
+```sh
+bin/rivelc run examples/tic_tac_toe/main.rivel
+bin/rivelc run examples/tic_tac_toe/main.rivel --demo
+```
 
 ## The language
 
@@ -101,7 +119,7 @@ third_party/   QBE, vendored unmodified
 tests/cases/   language tests: run, error, panic, warn (see tests/run.sh)
 tests/unit/    C unit tests
 docs/          spec.md, architecture.md, qbe-notes.md
-examples/      small programs
+examples/      language examples and a complete tic-tac-toe game
 legacy/        the previous C-transpiling compiler, kept for reference
 ```
 

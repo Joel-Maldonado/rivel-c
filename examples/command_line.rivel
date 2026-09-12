@@ -1,0 +1,27 @@
+func main() -> int {
+    arguments := args();
+    if len(arguments) == 0 {
+        println("Usage: command_line <name> [rounds]");
+        println("Example: bin/rivelc run examples/command_line.rivel Ada 3");
+        return 0;
+    }
+    if len(arguments) > 2 {
+        eprintln("Expected a name and an optional round count.");
+        return 1;
+    }
+
+    rounds := 1;
+    if len(arguments) == 2 {
+        parsed := int(arguments[1]);
+        if parsed == null || parsed < 1 || parsed > 9 {
+            eprintln("Rounds must be a number from 1 to 9.");
+            return 1;
+        } else {
+            rounds = parsed;
+        }
+    }
+
+    println(f"Welcome, {arguments[0]}!");
+    println(f"Rounds to play: {rounds}");
+    return 0;
+}

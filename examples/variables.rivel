@@ -1,0 +1,18 @@
+func main() {
+    name := "Rivel";
+    lives := 3;
+    speed := 2.5;
+    ready := true;
+    bonus: int = 10;
+
+    lives += 1;
+    distance: float = lives * speed;
+
+    println(f"{name}: ready = {ready}");
+    println(f"Lives: {lives}, bonus: {bonus}");
+    println(f"Distance: {distance}");
+
+    // Integer division rounds down; a float operand gives a float result.
+    println(f"7 / 2 = {7 / 2}");
+    println(f"7 / 2.0 = {7 / 2.0}");
+}

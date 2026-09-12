@@ -1,0 +1,8 @@
+Plan: design -> build -> test -> release
+Includes testing: true
+Next: design
+Last: release
+Remaining: build, test
+Shared first score: 5
+Original second score: 7, sliced score: 8
+Average score: 7.0

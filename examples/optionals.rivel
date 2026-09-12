@@ -1,0 +1,30 @@
+func parse_rounds(text: str) -> int? {
+    rounds := int(text);
+    if rounds == null {
+        return null;
+    }
+    // The early return narrows rounds from int? to int here.
+    if rounds < 1 || rounds > 9 {
+        return null;
+    }
+    return rounds;
+}
+
+func describe_rounds(text: str) {
+    rounds := parse_rounds(text);
+    if rounds != null {
+        println(f"{text}: play {rounds} rounds");
+    } else {
+        println(f"{text}: choose a number from 1 to 9");
+    }
+}
+
+func main() {
+    describe_rounds("5");
+    describe_rounds("many");
+    describe_rounds("0");
+
+    preferred: str? = null;
+    println(f"Player: {preferred ?? "Guest"}");
+    println(f"Default rounds: {parse_rounds("invalid") ?? 3}");
+}
