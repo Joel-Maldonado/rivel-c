@@ -1,0 +1,47 @@
+{
+  "name": "rivel",
+  "displayName": "Rivel",
+  "description": "Syntax highlighting and editing support for the Rivel language.",
+  "version": "0.1.0",
+  "publisher": "Joel-Maldonado",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Joel-Maldonado/rivel-c.git",
+    "directory": "editors/vscode"
+  },
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages", "Snippets"],
+  "keywords": ["rivel", "syntax", "textmate"],
+  "capabilities": {
+    "untrustedWorkspaces": { "supported": true },
+    "virtualWorkspaces": true
+  },
+  "contributes": {
+    "languages": [{
+      "id": "rivel",
+      "aliases": ["Rivel", "rivel"],
+      "extensions": [".rivel"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "rivel",
+      "scopeName": "source.rivel",
+      "path": "./syntaxes/rivel.tmLanguage.json",
+      "embeddedLanguages": { "meta.embedded.expression.rivel": "rivel" },
+      "tokenTypes": { "meta.embedded.expression.rivel": "other" }
+    }],
+    "snippets": [{ "language": "rivel", "path": "./snippets/rivel.json" }]
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "export": "node scripts/export-textmate.mjs",
+    "check:exports": "node scripts/export-textmate.mjs --check",
+    "package": "npm run export && node scripts/package.mjs"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "3.9.2",
+    "vscode-oniguruma": "2.0.1",
+    "vscode-textmate": "9.3.2"
+  }
+}

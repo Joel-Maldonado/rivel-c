@@ -14,3 +14,5 @@ third_party/qbe/*/*.o
 /rivel
 /out
 /out.*
+node_modules/
+/dist/

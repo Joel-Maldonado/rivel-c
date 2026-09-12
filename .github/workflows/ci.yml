@@ -45,3 +45,30 @@ jobs:
         run: |
           sudo apt-get install -y clang-format >/dev/null
           clang-format --dry-run --Werror $(find src runtime tests/unit -name '*.c' -o -name '*.h')
+
+  editor-support:
+    name: Editor support
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: editors/vscode
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+      - name: Install development tools
+        run: npm ci --ignore-scripts
+      - name: Test grammar and exported bundle
+        run: npm test && npm run check:exports
+      - name: Package extension
+        run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rivel-editor-support
+          path: |
+            dist/*.vsix
+            editors/textmate/Rivel.tmbundle/
+          if-no-files-found: error

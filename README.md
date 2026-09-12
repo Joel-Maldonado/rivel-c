@@ -78,6 +78,14 @@ bin/rivelc run examples/tic_tac_toe/main.rivel
 bin/rivelc run examples/tic_tac_toe/main.rivel --demo
 ```
 
+## Editor support
+
+[Rivel editor support](editors/README.md) includes an installable VS Code
+extension and a portable TextMate grammar. It highlights `.rivel` files,
+including nested comments and f-string expressions, and adds snippets,
+bracket matching, and comment toggling in VS Code-compatible editors.
+The XML grammar can also be installed in Sublime Text and TextMate.
+
 ## The language
 
 The full contract is in [docs/spec.md](docs/spec.md). In short:
@@ -120,6 +128,7 @@ tests/cases/   language tests: run, error, panic, warn (see tests/run.sh)
 tests/unit/    C unit tests
 docs/          spec.md, architecture.md, qbe-notes.md
 examples/      language examples and a complete tic-tac-toe game
+editors/       syntax grammar, VS Code extension, and TextMate export
 legacy/        the previous C-transpiling compiler, kept for reference
 ```
 
