@@ -1,0 +1,5 @@
+{
+  "grammars": [{ "name": "rivel", "camelcase": "Rivel", "scope": "source.rivel", "path": ".", "file-types": ["rivel"], "highlights": "queries/highlights.scm" }],
+  "metadata": { "version": "0.2.0", "license": "MIT", "description": "Rivel grammar", "authors": [{ "name": "Joel Maldonado-Ruiz" }], "links": { "repository": "https://github.com/Joel-Maldonado/rivel-c" } },
+  "bindings": { "c": true }
+}

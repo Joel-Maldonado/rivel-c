@@ -1,0 +1,9 @@
+{
+  "name": "tree-sitter-rivel",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Tree-sitter grammar for Rivel",
+  "license": "MIT",
+  "scripts": { "generate": "tree-sitter generate --abi 14", "test": "node --test test/*.test.cjs" },
+  "devDependencies": { "tree-sitter-cli": "0.25.10" }
+}

@@ -3,6 +3,8 @@
 #   make            builds bin/rivelc, bin/qbe, and lib/rivel_rt.o
 #   make test       runs the language test suite (tests/run.sh)
 #   make test-examples checks standalone examples and the tic-tac-toe game
+#   make lsp        builds the portable Node.js language server (Node 22+)
+#   make test-lsp   tests compiler analysis and the LSP over stdio
 #   make unit       builds and runs C unit tests (runtime and compiler)
 #   make sanitize   rebuilds everything under ASan+UBSan into build/san, bin/san, lib/san
 #   make format     runs clang-format over the sources
@@ -17,13 +19,13 @@ BIN      ?= bin
 LIB      ?= lib
 RIVEL_HOME ?= $(abspath .)
 
-SRC_DIRS     := base lex ast parse sema ir lower backend driver
+SRC_DIRS     := base lex ast parse sema ir lower backend driver ide
 COMPILER_SRC := src/main.c $(shell find $(addprefix src/,$(SRC_DIRS)) -name '*.c' 2>/dev/null | sort)
 COMPILER_OBJ := $(COMPILER_SRC:%.c=$(BUILD)/%.o)
 RUNTIME_OBJ  := $(LIB)/rivel_rt.o
 DEPS         := $(COMPILER_OBJ:.o=.d) $(BUILD)/runtime/rivel_rt.d
 
-.PHONY: all test test-examples unit sanitize format clean qbe
+.PHONY: all test test-examples test-lsp lsp unit sanitize format clean qbe
 
 all: $(BIN)/rivelc $(BIN)/qbe $(RUNTIME_OBJ)
 
@@ -48,6 +50,13 @@ $(BIN)/qbe: $(wildcard third_party/qbe/*.c third_party/qbe/*/*.c third_party/qbe
 	$(MAKE) -C third_party/qbe CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -std=c99 -fwrapv -Wall -Wextra -Wpedantic" qbe
 	cp third_party/qbe/qbe $@
+
+lsp: $(BIN)/rivelc
+	npm ci --prefix tools/lsp --ignore-scripts
+	npm run build --prefix tools/lsp
+
+test-lsp: lsp
+	npm test --prefix tools/lsp
 
 test: all
 	@RIVEL_HOME="$(RIVEL_HOME)" RIVEL_BIN="$(BIN)" RIVEL_LIB="$(LIB)" tests/run.sh

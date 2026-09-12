@@ -1,8 +1,8 @@
 {
   "name": "rivel",
   "displayName": "Rivel",
-  "description": "Syntax highlighting and editing support for the Rivel language.",
-  "version": "0.1.0",
+  "description": "Rivel syntax highlighting, diagnostics, completion and navigation.",
+  "version": "0.2.0",
   "publisher": "Joel-Maldonado",
   "license": "MIT",
   "repository": {
@@ -10,38 +10,94 @@
     "url": "https://github.com/Joel-Maldonado/rivel-c.git",
     "directory": "editors/vscode"
   },
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Programming Languages", "Snippets"],
-  "keywords": ["rivel", "syntax", "textmate"],
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "rivel",
+    "syntax",
+    "textmate"
+  ],
   "capabilities": {
-    "untrustedWorkspaces": { "supported": true },
-    "virtualWorkspaces": true
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Syntax highlighting is available. Starting the language server requires workspace trust."
+    },
+    "virtualWorkspaces": false
   },
   "contributes": {
-    "languages": [{
-      "id": "rivel",
-      "aliases": ["Rivel", "rivel"],
-      "extensions": [".rivel"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "rivel",
-      "scopeName": "source.rivel",
-      "path": "./syntaxes/rivel.tmLanguage.json",
-      "embeddedLanguages": { "meta.embedded.expression.rivel": "rivel" },
-      "tokenTypes": { "meta.embedded.expression.rivel": "other" }
-    }],
-    "snippets": [{ "language": "rivel", "path": "./snippets/rivel.json" }]
+    "languages": [
+      {
+        "id": "rivel",
+        "aliases": [
+          "Rivel",
+          "rivel"
+        ],
+        "extensions": [
+          ".rivel"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rivel",
+        "scopeName": "source.rivel",
+        "path": "./syntaxes/rivel.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.expression.rivel": "rivel"
+        },
+        "tokenTypes": {
+          "meta.embedded.expression.rivel": "other"
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "rivel",
+        "path": "./snippets/rivel.json"
+      }
+    ],
+    "configuration": {
+      "title": "Rivel",
+      "properties": {
+        "rivel.serverPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to rivel-lsp. Empty uses PATH."
+        },
+        "rivel.compilerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to rivelc. Empty uses the server sibling, RIVELC, or PATH."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "rivel.restartServer",
+        "title": "Rivel: Restart Language Server"
+      }
+    ]
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "export": "node scripts/export-textmate.mjs",
     "check:exports": "node scripts/export-textmate.mjs --check",
-    "package": "npm run export && node scripts/package.mjs"
+    "package": "npm run build && npm run export && node scripts/package.mjs",
+    "build": "esbuild extension.cjs --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs"
   },
   "devDependencies": {
+    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "3.9.2",
+    "esbuild": "^0.28.2",
+    "vscode-languageclient": "^10.1.1",
     "vscode-oniguruma": "2.0.1",
     "vscode-textmate": "9.3.2"
-  }
+  },
+  "main": "./dist/extension.cjs"
 }

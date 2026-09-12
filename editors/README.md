@@ -1,77 +1,105 @@
 # Rivel editor support
 
-Rivel ships a reusable TextMate grammar and an installable VS Code extension.
-Syntax colors follow the editor's theme.
+Rivel provides one language server for LSP clients, a Tree-sitter grammar for
+Zed and other structural editors, and a TextMate grammar for VS Code, Sublime
+Text, and TextMate.
 
-## Formats and compatibility
+## Build the language server
 
-There is no single grammar format accepted by every editor.
+Install Node.js 22+ and the C build tools described in the root README, then:
 
-| Format | Purpose | Included here |
-| --- | --- | --- |
-| TextMate grammar | Regex-based syntax scopes for coloring | JSON and XML grammars |
-| VSIX | VS Code extension package carrying the grammar and editing settings | Built by `npm run package` |
-| Tree-sitter | An incremental parser with highlighting queries, used by another group of editors | Not implemented |
-| Language Server Protocol (LSP) | Editor/compiler integration such as diagnostics and completion | Not implemented |
+```sh
+make lsp
+```
 
-[VS Code uses TextMate grammars](https://code.visualstudio.com/api/language-extensions/syntax-highlight-guide)
-for syntax highlighting. [Tree-sitter](https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html)
-uses a separate parser and query format. A TextMate grammar alone does not
-add native Tree-sitter support to Neovim, Helix, or Zed.
+This creates `bin/rivel-lsp` alongside `bin/rivelc`. Add the checkout's `bin`
+directory to PATH, or configure absolute executable paths in your editor.
+The server uses stdio and never compiles or runs your program during editing.
+
+Supported features:
+
+- Compiler diagnostics on unsaved buffers, including errors and warnings.
+- Typed hover, name completion, and struct/string/list member completion.
+- Go to definition, references, symbol highlighting, and checked rename.
+- Function signatures, document outline, workspace symbol search, and folding.
+- Inferred type inlay hints and semantic highlighting where enabled by the editor.
+
+Each `.rivel` file is an independent program today. Navigation and rename stay
+within that file; workspace search lists symbols across files. Rename requires
+an error-free buffer and checks the proposed result for name conflicts.
+Formatting and code actions are not implemented. See [server details](../tools/lsp/README.md).
+
+## Zed
+
+[Installation guide](zed/README.md). Set `lsp.rivel.binary.path` to the built
+`bin/rivel-lsp` if it is not on PATH, then use **zed: install dev extension** and
+select `editors/zed`. Zed builds the adapter and grammar. This is a local
+installation, not a registry listing.
 
 ## VS Code and compatible editors
 
-Use **Extensions: Install from VSIX...** to install `rivel-0.1.0.vsix`.
-The file is included in the `rivel-editor-support` artifact produced by CI,
-or can be built locally:
-
 ```sh
-# From the repository root; Node.js 22 or newer is needed only for development.
 cd editors/vscode
 npm ci --ignore-scripts
-npm test
 npm run package
-code --install-extension ../../dist/rivel-0.1.0.vsix
 ```
 
-Other editors with VS Code-compatible VSIX support can use their own
-**Install from VSIX** command. See the [extension README](vscode/README.md)
-for snippets, features, and limitations. No Marketplace publication is
-required to install the local package.
+Use **Extensions: Install from VSIX** to install `dist/rivel-0.2.0.vsix` from the
+repository root. Set `rivel.serverPath` to the absolute path of `bin/rivel-lsp`
+if it is not on PATH. `rivel.compilerPath` optionally overrides `rivelc`.
+The extension starts the server for `.rivel` files in trusted workspaces and
+supports unsaved untitled Rivel documents. Use **Rivel: Restart Language Server**
+after changing settings. Syntax highlighting and snippets remain available
+without a server, including in untrusted workspaces.
 
-## Sublime Text
+For editor-host tests, run `node scripts/test-host.mjs`. Set `VSCODE_EXECUTABLE`
+to use an existing VS Code binary instead of downloading a test copy.
+The test uses an isolated profile under `build/vscode-lsp-qa`.
 
-[Sublime Text accepts TextMate `.tmLanguage` files](https://www.sublimetext.com/docs/syntax.html).
-Open **Preferences > Browse Packages...** and copy
-[`Rivel.tmLanguage`](textmate/Rivel.tmbundle/Syntaxes/Rivel.tmLanguage)
-into the `User` folder. Open a `.rivel` file or select **Rivel** from the
-syntax menu. The VS Code snippets and editing settings are separate and
-are not installed by copying the grammar.
+## Neovim 0.11+
 
-## TextMate
-
-Copy [`Rivel.tmbundle`](textmate/Rivel.tmbundle) into
-`~/Library/Application Support/TextMate/Bundles/`, then reopen TextMate.
-The bundle associates `.rivel` files with the `source.rivel` grammar.
-
-## Maintaining the grammar
-
-Edit [`rivel.tmLanguage.json`](vscode/syntaxes/rivel.tmLanguage.json), the
-canonical source. Then run:
-
-```sh
-cd editors/vscode
-npm run export
-npm test
-npm run check:exports
+```lua
+vim.filetype.add({ extension = { rivel = 'rivel' } })
+vim.lsp.config('rivel', {
+  cmd = { '/absolute/path/to/rivel-c/bin/rivel-lsp', '--stdio' },
+  filetypes = { 'rivel' },
+  root_markers = { '.git' },
+})
+vim.lsp.enable('rivel')
 ```
 
-The exporter generates the XML TextMate bundle from the same rules. Tests
-parse the XML with the TextMate engine, check equivalence with the JSON, and
-verify scopes against Rivel's compiler keywords, builtins, and source corpus.
-The CI editor-support job tests the grammar, packages the VSIX, and uploads
-the installable artifacts.
+The server provides semantic tokens. For Tree-sitter highlighting, register
+`editors/tree-sitter-rivel` with your chosen parser manager and install its
+`queries/highlights.scm` as `queries/rivel/highlights.scm`.
 
-Highlighting is lexical: it cannot distinguish every user-defined type or
-method by meaning. A compiler-backed LSP would be the next step for
-diagnostics and symbol-aware tooling.
+## Emacs with Eglot
+
+```elisp
+(define-derived-mode rivel-mode prog-mode "Rivel"
+  (setq-local comment-start "// ")
+  (setq-local comment-end ""))
+(add-to-list 'auto-mode-alist '("\\.rivel\\'" . rivel-mode))
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '(rivel-mode . ("/absolute/path/to/rivel-c/bin/rivel-lsp" "--stdio"))))
+(add-hook 'rivel-mode-hook #'eglot-ensure)
+```
+
+Other LSP clients use the same executable, `--stdio`, and language ID `rivel`.
+The Neovim and Emacs snippets are configuration examples; automated editor-host
+testing covers Zed and VS Code.
+
+## Portable TextMate highlighting
+
+The canonical grammar is `vscode/syntaxes/rivel.tmLanguage.json`, scope
+`source.rivel`. Its generated XML export is
+`textmate/Rivel.tmbundle/Syntaxes/Rivel.tmLanguage`.
+
+For TextMate, open `textmate/Rivel.tmbundle`. For Sublime Text, copy the XML
+`.tmLanguage` into a `Rivel` folder under **Preferences: Browse Packages**.
+These grammars highlight current Rivel syntax, including nested block comments
+and formatted-string expressions. LSP features require a separate client setup.
+
+Run `npm test` and `npm run check:exports` in `vscode` to verify highlighting.
+Run `npm run export` after changing the canonical grammar. The generated files
+are checked in so editors can use them without Node or a build step.

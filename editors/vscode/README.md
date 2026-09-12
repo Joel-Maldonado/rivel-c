@@ -1,40 +1,40 @@
 # Rivel for VS Code
 
-Syntax highlighting, snippets, bracket matching, comment toggling, and
-indentation support for `.rivel` files. Colors come from your editor theme.
-The extension is declarative and needs no compiler, language server, or
-runtime process to provide highlighting.
+Syntax highlighting, snippets, and compiler-backed language features for Rivel.
+Colors follow your editor theme, including nested comments and formatted strings.
 
 ## Install
 
-1. Get `rivel-0.1.0.vsix` from the editor-support CI artifact, or build it below.
-2. In VS Code, run **Extensions: Install from VSIX...** from the Command Palette.
-3. Select the VSIX, then open any `.rivel` file. The language mode should be **Rivel**.
+1. Install Node.js 22+ and run `make lsp` in the Rivel repository root.
+2. Get `rivel-0.2.0.vsix` from the editor-support CI artifact, or build it below.
+3. Run **Extensions: Install from VSIX...** and select the package.
+4. Set `rivel.serverPath` to the absolute path of the built `bin/rivel-lsp`,
+   or add the checkout's `bin` directory to PATH.
+5. Open a `.rivel` file. Its language mode should be **Rivel**.
 
-The same package can be installed in VS Code-compatible editors that support
-local VSIX extensions. If a file was manually assigned another language,
-click the language mode in the status bar and choose Rivel.
+`rivel.compilerPath` optionally selects a different compiler. Otherwise the
+server finds `rivelc` beside itself, through `RIVELC`, or on PATH.
+Use **Rivel: Restart Language Server** after rebuilding the server.
 
 ## Features
 
-- Functions, structs, parameters, builtin types and functions, and method calls
-- Strings and escapes, including expressions inside nested f-strings
-- Nested block comments and line comments
-- Integers in decimal, hex, octal, and binary; floats and range operators
-- Optional types, lists, `self`, booleans, and `null`
+- Diagnostics for unsaved buffers, typed hover, and name/member completion.
+- Definition, references, checked rename, and symbol highlighting.
+- Function signature help, document/workspace symbols, and folding.
+- Inferred type inlay hints and semantic highlighting.
+- TextMate highlighting, bracket pairing, comments, and indentation.
 - Snippets: `main`, `func`, `struct`, `method`, `for`, `fori`, `foreach`,
-  `while`, `if`, `parseint`, and `print`
-- Bracket pairing, comment commands, indentation, and `// #region` folding
+  `while`, `if`, `parseint`, and `print`.
 
-This is lexical highlighting. It does not provide compiler diagnostics,
-symbol-aware completion, rename, go-to-definition, or formatting. Calls and
-user-defined types are recognized from surrounding syntax, not resolved
-against a symbol table. The `struct` snippet reflects Rivel's actual
-class-style construct; the language has no `class` keyword or inheritance.
+The server runs only in trusted workspaces. Highlighting and snippets work
+without the server, including in untrusted workspaces. Each Rivel file is an
+independent program: navigation and rename are within a file; workspace symbol
+search spans files. Rename requires an error-free buffer and checks the result
+for conflicts. Formatting and code actions are not provided.
 
 ## Build and test
 
-Use Node.js 22 or newer. From this directory:
+From this directory:
 
 ```sh
 npm ci --ignore-scripts
@@ -43,16 +43,14 @@ npm run check:exports
 npm run package
 ```
 
-The package is written to `../../dist/rivel-0.1.0.vsix`. From this directory,
-install it with:
+The package is written to `../../dist/rivel-0.2.0.vsix` and can also be installed
+with `code --install-extension ../../dist/rivel-0.2.0.vsix`.
 
-```sh
-code --install-extension ../../dist/rivel-0.1.0.vsix
-```
+Run `node scripts/test-host.mjs` for real editor-host integration tests after
+building the server and `npm run build`. Tests use an isolated profile under
+`build/vscode-lsp-qa`; `VSCODE_EXECUTABLE` selects an installed VS Code executable.
 
-The tests use `vscode-textmate` and the Oniguruma engine to check token scopes,
-tricky syntax, and every current example and compiler test case. The source
-grammar is `syntaxes/rivel.tmLanguage.json`, with scope `source.rivel`.
-Run `npm run export` after editing it to refresh the compatible XML grammar.
-
-For other editors, see the [editor support guide](https://github.com/Joel-Maldonado/rivel-c/blob/main/editors/README.md).
+The portable grammar is `syntaxes/rivel.tmLanguage.json`, scope `source.rivel`.
+Run `npm run export` after editing it to refresh the XML TextMate grammar.
+See the [editor guide](https://github.com/Joel-Maldonado/rivel-c/blob/main/editors/README.md)
+for Zed and other clients.

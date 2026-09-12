@@ -16,3 +16,7 @@ third_party/qbe/*/*.o
 /out.*
 node_modules/
 /dist/
+/editors/vscode/dist/
+/editors/zed/target/
+/editors/zed/extension.wasm
+/editors/zed/grammars/

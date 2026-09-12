@@ -4,3 +4,4 @@ test/**
 package-lock.json
 *.vsix
 .vscode/**
+extension.cjs

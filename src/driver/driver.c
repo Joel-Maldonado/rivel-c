@@ -15,6 +15,7 @@
 
 #include "ast/ast.h"
 #include "backend/qbe.h"
+#include "ide/analysis.h"
 #include "ir/ir.h"
 #include "lex/lexer.h"
 #include "lower/lower.h"
@@ -38,6 +39,7 @@ typedef struct Options {
     const char *output;
     const char *target;
     bool run;
+    bool analyze;
     bool dump_tokens;
     bool dump_ast;
     bool dump_ir;
@@ -57,6 +59,7 @@ static void usage(FILE *out) {
           "  --emit-il        write the QBE IL next to the output and stop\n"
           "  --emit-asm       write the assembly next to the output and stop\n"
           "  --keep           keep the intermediate .il and .s files\n"
+          "  --analyze        emit diagnostics and semantic JSON; use - for stdin\n"
           "  --dump-tokens    print the token stream and stop\n"
           "  --dump-ast       print the syntax tree and stop\n"
           "  --dump-ir        print the IR and stop\n"
@@ -99,6 +102,8 @@ static bool parse_args(int argc, char **argv, Options *opts) {
             } else {
                 opts->target = argv[++i];
             }
+        } else if (strcmp(arg, "--analyze") == 0) {
+            opts->analyze = true;
         } else if (strcmp(arg, "--dump-tokens") == 0) {
             opts->dump_tokens = true;
         } else if (strcmp(arg, "--dump-ast") == 0) {
@@ -307,6 +312,8 @@ int driver_main(int argc, char **argv) {
     if (!parse_args(argc, argv, &opts)) {
         return 2;
     }
+    if (opts.analyze)
+        return ide_analyze(opts.input);
     src = source_from_file(opts.input, &err);
     if (src == NULL) {
         fprintf(stderr, "rivelc: %s\n", err);

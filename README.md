@@ -80,11 +80,12 @@ bin/rivelc run examples/tic_tac_toe/main.rivel --demo
 
 ## Editor support
 
-[Rivel editor support](editors/README.md) includes an installable VS Code
-extension and a portable TextMate grammar. It highlights `.rivel` files,
-including nested comments and f-string expressions, and adds snippets,
-bracket matching, and comment toggling in VS Code-compatible editors.
-The XML grammar can also be installed in Sublime Text and TextMate.
+[Rivel editor support](editors/README.md) includes a language server, a Zed
+extension with Tree-sitter highlighting, and a VS Code extension. Run `make lsp`
+with Node.js 22+ to build the server. It provides live compiler diagnostics,
+typed completion, hover, definition, references, checked rename, signature help,
+symbols, and inferred type hints. The same server works with other LSP clients.
+Portable TextMate highlighting is also included.
 
 ## The language
 
@@ -122,6 +123,8 @@ src/ir/        the IR, --dump-ir
 src/lower/     AST to IR
 src/backend/   IR to QBE IL
 src/driver/    command line, running qbe and cc
+src/ide/       compiler analysis for editor features
+tools/lsp/     portable language server
 runtime/       rivel_rt.c: garbage collector, strings, lists, io, panics
 third_party/   QBE with a documented build compatibility patch
 tests/cases/   language tests: run, error, panic, warn (see tests/run.sh)

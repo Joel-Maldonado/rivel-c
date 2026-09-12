@@ -1,0 +1,5 @@
+("(" @open ")" @close)
+("[" @open "]" @close)
+("{" @open "}" @close)
+(string "\"" @open "\"" @close)
+(formatted_string "f\"" @open "\"" @close)

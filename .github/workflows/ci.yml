@@ -24,6 +24,11 @@ jobs:
         run: make test
       - name: Examples
         run: make test-examples
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Language server integration tests
+        run: make test-lsp
 
   sanitize:
     name: ASan + UBSan
@@ -63,6 +68,25 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Test grammar and exported bundle
         run: npm test && npm run check:exports
+      - name: Tree-sitter grammar
+        working-directory: editors/tree-sitter-rivel
+        run: |
+          npm ci --ignore-scripts
+          (cd node_modules/tree-sitter-cli && node install.js)
+          npm run generate
+          npm test
+          git diff --exit-code -- src/
+      - name: Zed adapter
+        working-directory: editors/zed
+        run: |
+          rustup target add wasm32-wasip1
+          cargo build --locked --target wasm32-wasip1
+      - name: VS Code host integration
+        working-directory: .
+        run: |
+          make lsp
+          npm run build --prefix editors/vscode
+          xvfb-run -a node editors/vscode/scripts/test-host.mjs
       - name: Package extension
         run: npm run package
       - uses: actions/upload-artifact@v4
@@ -71,4 +95,5 @@ jobs:
           path: |
             dist/*.vsix
             editors/textmate/Rivel.tmbundle/
+            editors/zed/target/wasm32-wasip1/debug/rivel_zed.wasm
           if-no-files-found: error

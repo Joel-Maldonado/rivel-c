@@ -1,0 +1,16 @@
+id = "rivel"
+name = "Rivel"
+version = "0.2.0"
+schema_version = 1
+authors = ["Joel Maldonado-Ruiz"]
+description = "Rivel language support: highlighting, diagnostics, completion and navigation."
+repository = "https://github.com/Joel-Maldonado/rivel-c"
+
+[language_servers.rivel]
+name = "Rivel LSP"
+languages = ["Rivel"]
+
+[grammars.rivel]
+repository = "https://github.com/Joel-Maldonado/rivel-c"
+rev = "main"
+path = "editors/tree-sitter-rivel"

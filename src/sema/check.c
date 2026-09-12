@@ -258,7 +258,7 @@ static Type *resolve_type(Checker *C, const TypeExpr *t, bool allow_void) {
             return C->tt->t_error;
         }
         if (sym->kind == SYM_TYPE) {
-            if (sym->type->kind == TY_VOID && !allow_void) {
+            if (sym->type != NULL && sym->type->kind == TY_VOID && !allow_void) {
                 error(C, t->span, "`void` is only valid as a return type");
                 return C->tt->t_error;
             }
@@ -1612,7 +1612,8 @@ static void resolve_signature(Checker *C, Symbol *fn) {
     FuncDecl *decl = fn->func;
     for (size_t i = 0; i < decl->params.len; i++) {
         Param *p = &decl->params.data[i];
-        Type *t = p->type == NULL ? fn->owner->type : resolve_type(C, p->type, false);
+        Type *t = p->type == NULL && fn->owner != NULL && str_eq_c(p->name, "self") ? fn->owner->type
+                                                                                    : resolve_type(C, p->type, false);
         for (size_t j = 0; j < i; j++) {
             if (str_eq(decl->params.data[j].name, p->name)) {
                 error(C, p->span, "duplicate parameter name `" STR_FMT "`", STR_ARG(p->name));
