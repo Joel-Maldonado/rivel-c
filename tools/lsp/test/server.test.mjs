@@ -146,3 +146,21 @@ test('missing compiler is reported as a diagnostic and the server stays alive', 
   assert.match((await client.diagnostics(uri, 1))[0].message, /Cannot analyze/);
   assert.deepEqual(await client.request('textDocument/documentSymbol', { textDocument: { uri } }), []);
 });
+test('completion signatures agree with compiler builtin arity and parameter types', async () => {
+  const { builtins, builtinMembers } = await import('../builtins.mjs');
+  const valueFor = type => {
+    if (type.startsWith('list[str]')) return '["a"]';
+    if (type.startsWith('list[')) return '[1]';
+    if (type.startsWith('str')) return '"a"';
+    if (type.startsWith('float')) return '1.0';
+    if (type.startsWith('bool')) return 'true';
+    return '1';
+  };
+  const groups = [[builtins, '', ''], [builtinMembers('str'), 's := "text";', 's.'], [builtinMembers('list[int]'), 'xs := [1];', 'xs.']];
+  for (const [symbols, setup, receiver] of groups) for (const symbol of symbols) {
+    const args = symbol.parameters.map(p => valueFor(p.type)).join(', ');
+    const input = `func main() { ${setup} ${receiver}${symbol.name}(${args}); }`;
+    const result = JSON.parse(execFileSync(process.env.RIVEL_TEST_COMPILER || root + 'bin/rivelc', ['--analyze', '-'], { input, encoding: 'utf8' }));
+    assert.deepEqual(result.diagnostics.filter(d => d.severity === 1), [], input);
+  }
+});

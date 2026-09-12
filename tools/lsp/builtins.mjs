@@ -10,7 +10,7 @@ const functions = {
   ord: ['value: str', 'int', 'Return the byte value of a one-byte string.'],
   chr: ['value: int', 'str', 'Return a one-byte string for a value in 0..255.'],
   panic: ['message: str', 'void', 'Stop the program with a panic.'],
-  assert: ['condition: bool, message: str', 'void', 'Panic with the message when the condition is false.'],
+  assert: ['condition: bool', 'void', 'Panic when the condition is false.'],
   exit: ['code: int', 'void', 'Exit the process.'],
   args: ['', 'list[str]', 'Command-line arguments, excluding the executable name.'],
   read_file: ['path: str', 'str?', 'Read a file; null on failure.'],
