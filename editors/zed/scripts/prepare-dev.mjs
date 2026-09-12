@@ -1,8 +1,10 @@
 import { cp, mkdir, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 const extension = new URL('../', import.meta.url);
-const output = new URL('../../build/zed-extension/', extension);
+const output = pathToFileURL(join(homedir(), '.local/share/rivel/zed-extension') + '/');
 await mkdir(output, { recursive: true });
 for (const entry of ['Cargo.toml', 'Cargo.lock', 'extension.toml', 'src', 'languages']) {
   await cp(new URL(entry, extension), new URL(entry, output), { recursive: true });

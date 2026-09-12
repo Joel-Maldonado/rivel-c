@@ -60,8 +60,8 @@ cargo build --locked --target wasm32-wasip1
 If Homebrew's Rust precedes rustup on PATH, use
 `RUSTC="$(rustup which rustc)" cargo build --locked --target wasm32-wasip1`.
 For a development copy that pins rustc without changing your PATH, run
-`node scripts/prepare-dev.mjs` and install the printed `build/zed-extension`
-directory. Keep this directory while the extension is installed, and rerun the
+`node scripts/prepare-dev.mjs` and install the printed `~/.local/share/rivel/zed-extension`
+directory. This copy survives `make clean`. Rerun the
 script then rebuild the development extension after updating its source.
 Newer Zed versions may build with `wasm32-wasip2`; install that rustup target
 as well if requested by your editor.

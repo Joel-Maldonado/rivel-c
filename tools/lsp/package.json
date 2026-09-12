@@ -3,14 +3,18 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "build": "esbuild server.mjs --bundle --platform=node --format=cjs --outfile=../../bin/rivel-lsp --banner:js='#!/usr/bin/env node' && chmod +x ../../bin/rivel-lsp",
+    "build": "esbuild server.mjs --bundle --platform=node --format=cjs --outfile=../../bin/rivel-lsp --banner:js='#!/usr/bin/env node' && chmod +x ../../bin/rivel-lsp && cp THIRD_PARTY_NOTICES.txt ../../bin/rivel-lsp.LICENSE.txt",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "vscode-languageserver": "10.1.1",
     "vscode-languageserver-textdocument": "1.0.12"
   },
-  "devDependencies": { "esbuild": "0.28.2" }
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
 }
