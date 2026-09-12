@@ -28,12 +28,16 @@ aggregate-type ABI lowering).
 
 ### How it is built
 
-The top-level `Makefile` has a `bin/qbe` target that runs
-`make -C third_party/qbe CC="$(CC)" qbe` and copies `third_party/qbe/qbe` to
-`bin/qbe`. QBE's own Makefile is POSIX make; it generates `config.h`
-(selecting the default `-t` target from `uname`) on first build, and compiles
-with `-std=c99 -g -Wall -Wextra -Wpedantic` and no optimisation level. The
-build products (`config.h`, `*.o`, `qbe`) are gitignored. `make clean` at the
+The top-level `Makefile` has a `bin/qbe` target that runs QBE's own Makefile
+and copies `third_party/qbe/qbe` to `bin/qbe`. It passes through `CC` and
+`CFLAGS`, including sanitizer flags, and adds `-std=c99 -fwrapv -Wall -Wextra
+-Wpedantic`. C99 keeps QBE's `asm` field name valid; `-fwrapv` defines the
+wrapping signed arithmetic used by its integer constants and alias offsets.
+Both ASan and UBSan remain enabled in sanitizer builds.
+
+QBE's own Makefile is POSIX make; it generates `config.h` (selecting the
+default `-t` target from `uname`) on first build. The build products
+(`config.h`, `*.o`, `qbe`) are gitignored. `make clean` at the
 top level also runs QBE's `clean` (which leaves `config.h`; use
 `make -C third_party/qbe clean-gen` to remove that too).
 

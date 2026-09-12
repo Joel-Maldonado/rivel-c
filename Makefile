@@ -39,10 +39,12 @@ $(RUNTIME_OBJ): runtime/rivel_rt.c runtime/rivel_rt.h
 	$(CC) -MMD -MP -MF $(BUILD)/runtime/rivel_rt.d $(WARN) $(DEFS) $(CFLAGS) -c $< -o $@
 
 # QBE is vendored unmodified; its own Makefile produces third_party/qbe/qbe.
+# Keep its C99 dialect and define wrapping arithmetic for its integer constants.
 qbe: $(BIN)/qbe
 $(BIN)/qbe: $(wildcard third_party/qbe/*.c third_party/qbe/*/*.c third_party/qbe/*.h)
 	@mkdir -p $(dir $@)
-	$(MAKE) -C third_party/qbe CC="$(CC)" qbe
+	$(MAKE) -C third_party/qbe CC="$(CC)" \
+		CFLAGS="$(CFLAGS) -std=c99 -fwrapv -Wall -Wextra -Wpedantic" qbe
 	cp third_party/qbe/qbe $@
 
 test: all
